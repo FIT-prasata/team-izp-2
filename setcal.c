@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+int validate_user_input(int argc, char const *argv[]);
 void my_split(char line[], char separators[]);
 void process_rows(char *lines[]);
 //     for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
@@ -19,6 +21,7 @@ void process_rows(char *lines[]);
 //     }
 // }
 void process_operation(char command_name[], char *lines[], int line1, int line2);
+
 
 //mnoziny declaration
 int empty_com(int line1, char *lines[]);
@@ -43,6 +46,7 @@ int injective_com(int line1, char *lines[]);
 int surjective_com(int line1, char *lines[]);
 int bijective_com(int line1, char *lines[]);
 
+
 int main(int argc, char const *argv[])
 {
     //FILE *file;
@@ -50,6 +54,29 @@ int main(int argc, char const *argv[])
     // process_rows(lines);
     //file = fopen (argv[1], "r");
     //printf("%s", file[0]);
+    return 0;
+}
+
+// Returns 1 if input is correct, otherwise 0
+int validate_user_input(int argc, char const *argv[])
+{
+    if (argc > 2)
+    {
+        fprintf(stderr, "Prilis mnoho zadanych argumentu!\n");
+        return 0;
+    }
+    if (argc < 2) 
+    {
+        fprintf(stderr, "Prilis malo zadanych argumentu!\n");
+        return 0;
+    }
+    char buffer[4];
+    for (int i = 4; i > 0; i--)
+    {
+        buffer[4 - i] = argv[1][strlen(argv[1]) - i];
+    }
+    if (strcmp(buffer, ".txt") == 0 && strlen(argv[1]) > 4) return 1;
+    fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
 }
 
@@ -162,6 +189,7 @@ void process_operation(char command_name[], char *lines[], int line1, int line2)
     {
         fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
     }
+
 }
 
 int empty_com(int line1, char *lines[])
