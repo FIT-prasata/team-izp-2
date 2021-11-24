@@ -27,6 +27,120 @@ int surjective_com(int line1, char *lines[]);
 int bijective_com(int line1, char *lines[]);
 
 
+// vubec nefunguje, alokování paměti přes malloc je ASI dobře, ale neměl jsem možnost to otestovat protože ten strtok nespolupracuje
+char **my_split(char line[], char separators[]){
+    printf("%s\n", line);
+    printf("tady: %s\n", separators);
+    printf("tady\n");
+    char **com_arr = malloc(sizeof(char*));
+    char *temp = strtok(line, separators);
+    printf("tady2\n");
+    for (int i = 0; temp != NULL; i++){
+        com_arr[i] = malloc(strlen(temp));
+        strcpy(com_arr[i], temp);
+        temp = strtok(NULL, separators);
+        com_arr = realloc(com_arr, (i + 2) * sizeof(char*));
+    }
+    return com_arr;
+}
+
+
+void process_rows(char *lines[]){
+    for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
+        if (lines[i][0] == 'C'){
+            printf("ccccccccc\n");
+            char **vystup = my_split(lines[i], " ");
+            for (int i = 0; i < 10; i++){
+                printf("%s\n", vystup[i]);
+            }
+            free(vystup);
+        }
+        else{
+            printf("%s\n", lines[i]);
+        }
+    }
+}
+
+
+// execute proper function when line contains command
+void process_operation(char command_name[], char *lines[], int line1, int line2){
+    //mnoziny
+    if (strcmp(command_name, "empty")){
+        empty_com(line1, lines);
+    }
+    else if (strcmp(command_name, "card")){
+        card_com(line1, lines);
+    }
+    else if (strcmp(command_name, "complement")){
+        complement_com(line1, lines);
+    }
+    else if (strcmp(command_name, "union")){
+        union_com(line1, line2, lines);
+    }
+    else if (strcmp(command_name, "intersect")){
+        intersect_com(line1, line2, lines);
+    }
+    else if (strcmp(command_name, "minus")){
+        minus_com(line1, line2, lines);
+    }
+    else if (strcmp(command_name, "subseteq")){
+        subseteq_com(line1, line2, lines);
+    }
+    else if (strcmp(command_name, "subset")){
+        subset_com(line1, line2, lines);
+    }
+    else if (strcmp(command_name, "equals")){
+        equals_com(line1, line2, lines);
+    }
+    //relacie
+    else if (strcmp(command_name, "reflexive")){
+        reflexive_com(line1, lines);
+    }
+    else if (strcmp(command_name, "symmetric")){
+        symmetric_com(line1, lines);
+    }
+    else if (strcmp(command_name, "antisymmetric")){
+        antisymmetric_com(line1, lines);
+    }
+    else if (strcmp(command_name, "transitive")){
+        transitive_com(line1, lines);
+    }
+    else if (strcmp(command_name, "function")){
+        function_com(line1, lines);
+    }
+    else if (strcmp(command_name, "domain")){
+        domain_com(line1, lines);
+    }
+    else if (strcmp(command_name, "codomain")){
+        codomain_com(line1, lines);
+    }
+    else if (strcmp(command_name, "injective")){
+        injective_com(line1, lines);
+    }
+    else if (strcmp(command_name, "surjective")){
+        surjective_com(line1, lines);
+    }
+    else if (strcmp(command_name, "bijective")){
+        bijective_com(line1, lines);   
+    }
+    else{
+        fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
+    }
+
+}
+
+
+
+int main(int argc, char const *argv[])
+{
+    //FILE *file;
+    char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2"};
+    process_rows(lines);
+    //file = fopen (argv[1], "r");
+    //printf("%s", file[0]);
+    return 0;
+}
+
 
 int empty_com(int line1, char *lines[]){
     printf("empty\n");
@@ -104,101 +218,5 @@ int surjective_com(int line1, char *lines[]){
 }
 int bijective_com(int line1, char *lines[]){
     printf("bijective\n");
-    return 0;
-}
-
-
-int process_command(char command[]){
-    char *com_arr[4];
-    return 0;
-}
-
-
-void process_rows(char *lines[]){
-    for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
-        if (lines[i][0] == 'C'){
-            process_command(lines[i]);
-        }
-        else{
-            printf("%s\n", lines[i]);
-        }
-    }
-}
-
-
-// execute proper function when line contains command
-void process_operation(char command_name[], char *lines[], int line1, int line2){
-    //mnoziny
-    if (strcmp(command_name, "empty")){
-        empty_com(line1, lines);
-    }
-    else if (strcmp(command_name, "card")){
-        card_com(line1, lines);
-    }
-    else if (strcmp(command_name, "complement")){
-        complement_com(line1, lines);
-    }
-    else if (strcmp(command_name, "union")){
-        union_com(line1, line2, lines);
-    }
-    else if (strcmp(command_name, "intersect")){
-        intersect_com(line1, line2, lines);
-    }
-    else if (strcmp(command_name, "minus")){
-        minus_com(line1, line2, lines);
-    }
-    else if (strcmp(command_name, "subseteq")){
-        subseteq_com(line1, line2, lines);
-    }
-    else if (strcmp(command_name, "subset")){
-        subset_com(line1, line2, lines);
-    }
-    else if (strcmp(command_name, "equals")){
-        equals_com(line1, line2, lines);
-    }
-    //relacie
-    else if (strcmp(command_name, "reflexive")){
-        reflexive_com(line1, lines);
-    }
-    else if (strcmp(command_name, "symmetric")){
-        symmetric_com(line1, lines);
-    }
-    else if (strcmp(command_name, "antisymmetric")){
-        antisymmetric_com(line1, lines);
-    }
-    else if (strcmp(command_name, "transitive")){
-        transitive_com(line1, lines);
-    }
-    else if (strcmp(command_name, "function")){
-        function_com(line1, lines);
-    }
-    else if (strcmp(command_name, "domain")){
-        domain_com(line1, lines);
-    }
-    else if (strcmp(command_name, "codomain")){
-        codomain_com(line1, lines);
-    }
-    else if (strcmp(command_name, "injective")){
-        injective_com(line1, lines);
-    }
-    else if (strcmp(command_name, "surjective")){
-        surjective_com(line1, lines);
-    }
-    else if (strcmp(command_name, "bijective")){
-        bijective_com(line1, lines);   
-    }
-    else{
-        fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
-    }
-
-}
-
-int main(int argc, char const *argv[])
-{
-    //FILE *file;
-    char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2"};
-    process_rows(lines);
-    //file = fopen (argv[1], "r");
-    //printf("%s", file[0]);
     return 0;
 }
