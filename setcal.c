@@ -4,7 +4,7 @@
 
 
 int validate_user_input(int argc, char const *argv[]);
-void my_split(char line[], char separators[]);
+void my_split(char line[], char separator, char **result, int line_length);
 void process_rows(char *lines[]);
 //     for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
 //         if (lines[i][0] == 'C'){
@@ -50,7 +50,7 @@ int bijective_com(int line1, char *lines[]);
 int main(int argc, char const *argv[])
 {
     //FILE *file;
-    char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2"};
+    // char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2"};
     // process_rows(lines);
     //file = fopen (argv[1], "r");
     //printf("%s", file[0]);
