@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+int validate_user_input(int argc, char const *argv[]);
 
 //mnoziny declaration
 int empty_com(int line1, char *lines[]);
@@ -26,7 +27,28 @@ int injective_com(int line1, char *lines[]);
 int surjective_com(int line1, char *lines[]);
 int bijective_com(int line1, char *lines[]);
 
-
+// Returns 1 if input is correct, otherwise 0
+int validate_user_input(int argc, char const *argv[])
+{
+    if (argc > 2)
+    {
+        fprintf(stderr, "Prilis mnoho zadanych argumentu!\n");
+        return 0;
+    }
+    if (argc < 2) 
+    {
+        fprintf(stderr, "Prilis malo zadanych argumentu!\n");
+        return 0;
+    }
+    char buffer[4];
+    for (int i = 4; i > 0; i--)
+    {
+        buffer[4 - i] = argv[1][strlen(argv[1]) - i];
+    }
+    if (strcmp(buffer, ".txt") == 0 && strlen(argv[1]) > 4) return 1;
+    fprintf(stderr, "Spatne zadany argument!\n");
+    return 0;
+}
 
 int empty_com(int line1, char *lines[]){
     printf("empty\n");
