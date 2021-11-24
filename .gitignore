@@ -1,5 +1,6 @@
 *.txt
-
+tempCodeRunnerFile.c
+split2.c
 # Prerequisites
 *.d
 
