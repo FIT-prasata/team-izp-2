@@ -50,11 +50,34 @@ int bijective_com(int line1, char *lines[]);
 int main(int argc, char const *argv[])
 {
     //FILE *file;
-    // char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2"};
-    // process_rows(lines);
+    char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2", "C minus 2", "C empty 6"};
+    process_rows(lines);
     //file = fopen (argv[1], "r");
     //printf("%s", file[0]);
     return 0;
+}
+
+void process_rows(char *lines[]){
+    for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
+        if (lines[i][0] == 'C'){
+            char *vystup[] = {"_", "_", "_", "_"};
+            my_split(lines[i], ' ', vystup, strlen(lines[i]));
+            process_operation(vystup[1], lines, atoi(vystup[2]), atoi(vystup[3]));
+            if (!strcmp(vystup[3], "_")){
+                for (int i = 0; i < 3; i++){
+                    free(vystup[i]);
+                }
+            }
+            else{
+                for (int i = 0; i < 4; i++){
+                    free(vystup[i]);
+                }
+            }
+        }
+        else{
+            printf("%s\n", lines[i]);
+        }
+    }
 }
 
 // Returns 1 if input is correct, otherwise 0
@@ -75,7 +98,7 @@ int validate_user_input(int argc, char const *argv[])
     {
         buffer[4 - i] = argv[1][strlen(argv[1]) - i];
     }
-    if (strcmp(buffer, ".txt") == 0 && strlen(argv[1]) > 4) return 1;
+    if (!strcmp(buffer, ".txt") && strlen(argv[1]) > 4) return 1;
     fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
 }
@@ -108,80 +131,80 @@ void my_split(char line[], char separator, char **result, int line_length)
 void process_operation(char command_name[], char *lines[], int line1, int line2)
 {
     //mnoziny
-    if (strcmp(command_name, "empty"))
+    if (!strcmp(command_name, "empty"))
     {
         empty_com(line1, lines);
     }
-    else if (strcmp(command_name, "card"))
+    else if (!strcmp(command_name, "card"))
     {
         card_com(line1, lines);
     }
-    else if (strcmp(command_name, "complement"))
+    else if (!strcmp(command_name, "complement"))
     {
         complement_com(line1, lines);
     }
-    else if (strcmp(command_name, "union"))
+    else if (!strcmp(command_name, "union"))
     {
         union_com(line1, line2, lines);
     }
-    else if (strcmp(command_name, "intersect"))
+    else if (!strcmp(command_name, "intersect"))
     {
         intersect_com(line1, line2, lines);
     }
-    else if (strcmp(command_name, "minus"))
+    else if (!strcmp(command_name, "minus"))
     {
         minus_com(line1, line2, lines);
     }
-    else if (strcmp(command_name, "subseteq"))
+    else if (!strcmp(command_name, "subseteq"))
     {
         subseteq_com(line1, line2, lines);
     }
-    else if (strcmp(command_name, "subset"))
+    else if (!strcmp(command_name, "subset"))
     {
         subset_com(line1, line2, lines);
     }
-    else if (strcmp(command_name, "equals"))
+    else if (!strcmp(command_name, "equals"))
     {
         equals_com(line1, line2, lines);
     }
     //relacie
-    else if (strcmp(command_name, "reflexive"))
+    else if (!strcmp(command_name, "reflexive"))
     {
         reflexive_com(line1, lines);
     }
-    else if (strcmp(command_name, "symmetric"))
+    else if (!strcmp(command_name, "symmetric"))
     {
         symmetric_com(line1, lines);
     }
-    else if (strcmp(command_name, "antisymmetric"))
+    else if (!strcmp(command_name, "antisymmetric"))
     {
         antisymmetric_com(line1, lines);
     }
-    else if (strcmp(command_name, "transitive"))
+    else if (!strcmp(command_name, "transitive"))
     {
         transitive_com(line1, lines);
     }
-    else if (strcmp(command_name, "function"))
+    else if (!strcmp(command_name, "function"))
     {
         function_com(line1, lines);
     }
-    else if (strcmp(command_name, "domain"))
+    else if (!strcmp(command_name, "domain"))
     {
         domain_com(line1, lines);
     }
-    else if (strcmp(command_name, "codomain"))
+    else if (!strcmp(command_name, "codomain"))
     {
         codomain_com(line1, lines);
     }
-    else if (strcmp(command_name, "injective"))
+    else if (!strcmp(command_name, "injective"))
     {
         injective_com(line1, lines);
     }
-    else if (strcmp(command_name, "surjective"))
+    else if (!strcmp(command_name, "surjective"))
     {
         surjective_com(line1, lines);
     }
-    else if (strcmp(command_name, "bijective"))
+    else if (!strcmp(command_name, "bijective"))
     {
         bijective_com(line1, lines);
     }
