@@ -4,33 +4,21 @@
 
 #define DEFAULT_LINE_SIZE 30
 
-
-
-// Returns 1 if input is correct, otherwise 0
-int validate_user_input(int argc, char const *argv[]);
-// returns 1 if is end of file, else returns 0
-int readline(FILE *file,char *line);
-// creates array of lines from file
-void process_file(char filename[], char **result);
+// UTILS
 // result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
 void my_split(char line[], char separator, char **result, int line_length);
-void process_rows(char *lines[]);
-//     for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
-//         if (lines[i][0] == 'C'){
-//             printf("ccccccccc\n");
-//             char **vystup = my_split(lines[i], " ");
-//             for (int i = 0; i < 10; i++){
-//                 printf("%s\n", vystup[i]);
-//             }
-//             free(vystup);
-//         }
-//         else{
-//             printf("%s\n", lines[i]);
-//         }
-//     }
-// }
-void process_operation(char command_name[], char *lines[], int line1, int line2);
 
+//VALIDATORS
+// Returns 1 if input is correct, otherwise 0
+int validate_user_input(int argc, char const *argv[]);
+
+// MAIN FUNCTIONS
+// returns 1 if is end of file, else returns 0
+int readline(FILE *file, char *line);
+// creates array of lines from file
+void process_file(char filename[], char **result);
+void process_rows(char *lines[]);
+void process_operation(char command_name[], char *lines[], int line1, int line2);
 
 //mnoziny declaration
 int empty_com(int line1, char *lines[]);
@@ -55,40 +43,40 @@ int injective_com(int line1, char *lines[]);
 int surjective_com(int line1, char *lines[]);
 int bijective_com(int line1, char *lines[]);
 
-
 int main(int argc, char const *argv[])
 {
     char *lines[1000];
-    //file = fopen (argv[1], "r");
-    //printf("%s", file[0]);
     char filename[10] = "file.txt";
     process_file(filename, lines);
     return 0;
 }
 
-void process_rows(char *lines[]){
-    for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
-        if (lines[i][0] == 'C'){
-            char *vystup[] = {"_", "_", "_", "_"};
-            my_split(lines[i], ' ', vystup, strlen(lines[i]));
-            process_operation(vystup[1], lines, atoi(vystup[2]), atoi(vystup[3]));
-            if (!strcmp(vystup[3], "_")){
-                for (int i = 0; i < 3; i++){
-                    free(vystup[i]);
-                }
-            }
-            else{
-                for (int i = 0; i < 4; i++){
-                    free(vystup[i]);
-                }
-            }
-        }
-        else{
-            printf("%s\n", lines[i]);
+// UTILS
+// result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
+void my_split(char line[], char separator, char **result, int line_length)
+{
+    int subst_start = 0;  // where should creation of the substring start
+    int substs_count = 0; // how many substrings I have (index in result)
+    char *substr;
+
+    substr = (char *)malloc(1); // dummy malloc
+    for (int i = 0; i <= line_length; i++)
+    {
+        if ((line[i] == separator) || (line[i] == '\0'))
+        {
+            substr = (char *)realloc(substr, (i - subst_start) + 1);      //reallocing dummy with size of string +1 for 0 char
+            strncpy(substr, &line[subst_start], i - subst_start);         // giving right value to substring
+            substr[i - subst_start] = '\0';                               // adding 0 to end of substring
+            result[substs_count] = (char *)malloc((i - subst_start) + 1); // allocating result size
+            strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
+            subst_start = i + 1;
+            substs_count++;
         }
     }
+    free(substr);
 }
 
+//VALIDATORS
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[])
 {
@@ -97,7 +85,7 @@ int validate_user_input(int argc, char const *argv[])
         fprintf(stderr, "Prilis mnoho zadanych argumentu!\n");
         return 0;
     }
-    if (argc < 2) 
+    if (argc < 2)
     {
         fprintf(stderr, "Prilis malo zadanych argumentu!\n");
         return 0;
@@ -107,71 +95,84 @@ int validate_user_input(int argc, char const *argv[])
     {
         buffer[4 - i] = argv[1][strlen(argv[1]) - i];
     }
-    if (!strcmp(buffer, ".txt") && strlen(argv[1]) > 4) return 1;
+    if (!strcmp(buffer, ".txt") && strlen(argv[1]) > 4)
+        return 1;
     fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
 }
 
+// MAIN FUNCTIONS
 // returns 1 if is end of file, else returns 0
-int readline(FILE *file,char *line) {
+int readline(FILE *file, char *line)
+{
     int output_length = DEFAULT_LINE_SIZE;
     char ch = getc(file);
     int c_index = 0;
     while ((ch != '\n') && (ch != EOF))
     {
-        if (c_index == output_length-1) {
+        if (c_index == output_length - 1)
+        {
             output_length *= 2;
             line = (char *)realloc(line, output_length);
         }
         line[c_index] = ch;
 
         c_index++;
-        ch = getc(file);    
+        ch = getc(file);
     }
     line[c_index] = '\0';
 
-    if (ch == '\n') {
+    if (ch == '\n')
+    {
         return 0;
     }
     return 1;
-
 }
 
 // creates array of lines from file
-void process_file(char filename[], char **result) {
+void process_file(char filename[], char **result)
+{
     FILE *file;
     file = fopen(filename, "r");
     for (int i = 0; i < 1000; i++)
     {
         result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
-        if (readline(file, result[i])) {
+        if (readline(file, result[i]))
+        {
             break;
         }
     }
 }
 
-// result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
-void my_split(char line[], char separator, char **result, int line_length)
+void process_rows(char *lines[])
 {
-    int subst_start = 0; // where should creation of the substring start
-    int substs_count = 0; // how many substrings I have (index in result)
-    char *substr;
-
-    substr = (char *)malloc(1); // dummy malloc
-    for (int i = 0; i <= line_length; i++)
-    {
-        if ((line[i] == separator) || (line[i] == '\0'))
+    for (int i = 0; i < 1000; i++)
+    { //předávání toho řádku musím posunout o 1
+        if (lines[i][0] == 'C')
         {
-            substr = (char *)realloc(substr, (i - subst_start) + 1); //reallocing dummy with size of string +1 for 0 char
-            strncpy(substr, &line[subst_start], i - subst_start); // giving right value to substring
-            substr[i - subst_start] = '\0'; // adding 0 to end of substring
-            result[substs_count] = (char *)malloc((i - subst_start) + 1); // allocating result size
-            strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
-            subst_start = i + 1;
-            substs_count++;
+            char *vystup[] = {"_", "_", "_", "_"};
+            my_split(lines[i], ' ', vystup, strlen(lines[i]));
+            process_operation(vystup[1], lines, atoi(vystup[2]), atoi(vystup[3]));
+            if (!strcmp(vystup[3], "_"))
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    free(vystup[i]);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    free(vystup[i]);
+                }
+            }
+        }
+        else
+        {
+            printf("%s\n", lines[i]);
         }
     }
-    free(substr);
 }
 
 // execute proper function when line contains command
@@ -259,7 +260,6 @@ void process_operation(char command_name[], char *lines[], int line1, int line2)
     {
         fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
     }
-
 }
 
 int empty_com(int line1, char *lines[])
