@@ -6,7 +6,7 @@
 
 // UTILS
 // result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
-void my_split(char line[], char separator, char **result, int line_length, int *result_len);
+char** my_split(char line[], char separator, int line_length, int *result_len);
 
 //VALIDATORS
 // Returns 1 if input is correct, otherwise 0
@@ -45,18 +45,19 @@ int bijective_com(int line1, char *lines[]);
 
 //STRUCTS
 //struct for Sets
-typedef struct {
+typedef struct
+{
     unsigned size;
     int row;
     char **items;
 } Set;
 
 //struct for Array of Sets
-typedef struct {
+typedef struct
+{
     unsigned len;
     Set *data;
 } SetArray;
-
 
 int main(int argc, char const *argv[])
 {
@@ -68,13 +69,13 @@ int main(int argc, char const *argv[])
 }
 
 // UTILS
-// result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
-void my_split(char line[], char separator, char **result, int line_length, int *result_len)
+// result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars (not anymore, Sklenyho utrpení nás vyvedlo z této situace)
+char** my_split(char line[], char separator, int line_length, int *result_len)
 {
     int subst_start = 0;  // where should creation of the substring start
     int substs_count = 0; // how many substrings I have (index in result)
     char *substr;
-
+    char **result = malloc(sizeof(char *));
     substr = (char *)malloc(1); // dummy malloc
     for (int i = 0; i <= line_length; i++)
     {
@@ -87,17 +88,20 @@ void my_split(char line[], char separator, char **result, int line_length, int *
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
             subst_start = i + 1;
             substs_count++;
-            //printf("%d\n", substs_count);
-            //result = (char **)realloc(result, (substs_count + 1) * sizeof *result);
+            result = realloc(result, sizeof(char *) * (substs_count + 1));
+
         }
     }
     *result_len = substs_count; //withdrawing length of array - needed in Set_ctor etc.
     free(substr);
+    return result;
 }
 
-void set_ctor(Set *s, char **items, int row, int items_len){
+void set_ctor(Set *s, char **items, int row, int items_len)
+{
     s->row = row;
-    for (int i = 1; i < items_len; i++){
+    for (int i = 1; i < items_len; i++)
+    {
         strcpy(s->items[i], items[i]);
         s->size = i;
     }
@@ -176,24 +180,26 @@ void process_rows(char *lines[])
     { //předávání toho řádku musím posunout o 1
         if (lines[i][0] == 'C')
         {
-            char **output = (char **)malloc(4 * sizeof (char *));
+            //char **output = malloc(1 * sizeof(char *));
             int items_len = 0;
-            my_split(lines[i], ' ', output, strlen(lines[i]), &items_len);
-            for (int i = 0; i < items_len; i++){
+            char **output = my_split(lines[i], ' ', strlen(lines[i]), &items_len);
+            printf("%d\n", items_len);
+            for (int i = 0; i < items_len; i++)
+            {
                 printf("for: %s\n", output[i]);
             }
-            printf("%d\n", items_len);
-            if (items_len == 3) output[3] = "_";
+            if (items_len == 3)
+                output[3] = "_";
             printf("%s\n", output[3]);
             process_operation(output[1], lines, atoi(output[2]), atoi(output[3]));
-            
+
             for (int i = 0; i < items_len; i++)
-                {
-                    free(output[i]);
-                }
+            {
+                free(output[i]);
+            }
             free(output);
         }
-        
+
         //else if (lines[i][0] == 'S')
         else
         {
