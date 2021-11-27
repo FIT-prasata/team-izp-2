@@ -6,7 +6,7 @@
 
 // UTILS
 // result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
-void my_split(char line[], char separator, char **result, int line_length);
+void my_split(char line[], char separator, char **result, int line_length, int *result_len);
 
 //VALIDATORS
 // Returns 1 if input is correct, otherwise 0
@@ -43,17 +43,33 @@ int injective_com(int line1, char *lines[]);
 int surjective_com(int line1, char *lines[]);
 int bijective_com(int line1, char *lines[]);
 
+//STRUCTS
+//struct for Sets
+typedef struct {
+    unsigned size;
+    int row;
+    char **items;
+} Set;
+
+//struct for Array of Sets
+typedef struct {
+    unsigned len;
+    Set *data;
+} SetArray;
+
+
 int main(int argc, char const *argv[])
 {
     char *lines[1000];
     char filename[10] = "file.txt";
     process_file(filename, lines);
+    process_rows(lines);
     return 0;
 }
 
 // UTILS
 // result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
-void my_split(char line[], char separator, char **result, int line_length)
+void my_split(char line[], char separator, char **result, int line_length, int *result_len)
 {
     int subst_start = 0;  // where should creation of the substring start
     int substs_count = 0; // how many substrings I have (index in result)
@@ -71,11 +87,21 @@ void my_split(char line[], char separator, char **result, int line_length)
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
             subst_start = i + 1;
             substs_count++;
+            //printf("%d\n", substs_count);
+            //result = (char **)realloc(result, (substs_count + 1) * sizeof *result);
         }
     }
+    *result_len = substs_count; //withdrawing length of array - needed in Set_ctor etc.
     free(substr);
 }
 
+void set_ctor(Set *s, char **items, int row, int items_len){
+    s->row = row;
+    for (int i = 1; i < items_len; i++){
+        strcpy(s->items[i], items[i]);
+        s->size = i;
+    }
+}
 //VALIDATORS
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[])
@@ -150,26 +176,28 @@ void process_rows(char *lines[])
     { //předávání toho řádku musím posunout o 1
         if (lines[i][0] == 'C')
         {
-            char *vystup[] = {"_", "_", "_", "_"};
-            my_split(lines[i], ' ', vystup, strlen(lines[i]));
-            process_operation(vystup[1], lines, atoi(vystup[2]), atoi(vystup[3]));
-            if (!strcmp(vystup[3], "_"))
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    free(vystup[i]);
-                }
+            char **output = (char **)malloc(4 * sizeof (char *));
+            int items_len = 0;
+            my_split(lines[i], ' ', output, strlen(lines[i]), &items_len);
+            for (int i = 0; i < items_len; i++){
+                printf("for: %s\n", output[i]);
             }
-            else
-            {
-                for (int i = 0; i < 4; i++)
+            printf("%d\n", items_len);
+            if (items_len == 3) output[3] = "_";
+            printf("%s\n", output[3]);
+            process_operation(output[1], lines, atoi(output[2]), atoi(output[3]));
+            
+            for (int i = 0; i < items_len; i++)
                 {
-                    free(vystup[i]);
+                    free(output[i]);
                 }
-            }
+            free(output);
         }
+        
+        //else if (lines[i][0] == 'S')
         else
         {
+
             printf("%s\n", lines[i]);
         }
     }
