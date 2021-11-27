@@ -2,8 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DEFAULT_LINE_SIZE 30
 
+
+
+// Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[]);
+// returns 1 if is end of file, else returns 0
+int readline(FILE *file,char *line);
+// creates array of lines from file
+void process_file(char filename[], char **result);
+// result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
 void my_split(char line[], char separator, char **result, int line_length);
 void process_rows(char *lines[]);
 //     for (int i = 0; i < 1000; i++){ //předávání toho řádku musím posunout o 1
@@ -49,11 +58,11 @@ int bijective_com(int line1, char *lines[]);
 
 int main(int argc, char const *argv[])
 {
-    //FILE *file;
-    char *lines[1000] = {"U a b c x y z", "S a b c x", "S x y z", "C intersect 2 3", "C minus 2 3", "R (dad boy) (dad girl) (mom boy) (mom girl)", "C codomain 2", "C minus 2", "C empty 6"};
-    process_rows(lines);
+    char *lines[1000];
     //file = fopen (argv[1], "r");
     //printf("%s", file[0]);
+    char filename[10] = "file.txt";
+    process_file(filename, lines);
     return 0;
 }
 
@@ -101,6 +110,44 @@ int validate_user_input(int argc, char const *argv[])
     if (!strcmp(buffer, ".txt") && strlen(argv[1]) > 4) return 1;
     fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
+}
+
+// returns 1 if is end of file, else returns 0
+int readline(FILE *file,char *line) {
+    int output_length = DEFAULT_LINE_SIZE;
+    char ch = getc(file);
+    int c_index = 0;
+    while ((ch != '\n') && (ch != EOF))
+    {
+        if (c_index == output_length-1) {
+            output_length *= 2;
+            line = (char *)realloc(line, output_length);
+        }
+        line[c_index] = ch;
+
+        c_index++;
+        ch = getc(file);    
+    }
+    line[c_index] = '\0';
+
+    if (ch == '\n') {
+        return 0;
+    }
+    return 1;
+
+}
+
+// creates array of lines from file
+void process_file(char filename[], char **result) {
+    FILE *file;
+    file = fopen(filename, "r");
+    for (int i = 0; i < 1000; i++)
+    {
+        result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
+        if (readline(file, result[i])) {
+            break;
+        }
+    }
 }
 
 // result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars
