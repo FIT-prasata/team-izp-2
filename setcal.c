@@ -17,7 +17,7 @@ int validate_user_input(int argc, char const *argv[]);
 int readline(FILE *file, char *line);
 // creates array of lines from file
 void process_file(char filename[], char **result);
-void process_rows(char *lines[]);
+//void process_rows(char *lines[], SetArray *setar);
 void process_operation(char command_name[], char *lines[], int line1, int line2);
 
 //mnoziny declaration
@@ -47,7 +47,7 @@ int bijective_com(int line1, char *lines[]);
 //struct for Sets
 typedef struct
 {
-    unsigned size;
+    int size;
     int row;
     char **items;
 } Set;
@@ -55,16 +55,18 @@ typedef struct
 //struct for Array of Sets
 typedef struct
 {
-    unsigned len;
+    int len;
     Set *data;
 } SetArray;
 
 int main(int argc, char const *argv[])
 {
+    SetArray setar;
+    setarray_ctor(&setar);
     char *lines[1000];
     char filename[10] = "file.txt";
     process_file(filename, lines);
-    process_rows(lines);
+    process_rows(lines, &setar);
     return 0;
 }
 
@@ -88,7 +90,7 @@ char** my_split(char line[], char separator, int line_length, int *result_len)
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
             subst_start = i + 1;
             substs_count++;
-            result = realloc(result, sizeof(char *) * (substs_count + 1));
+            result = realloc(result, sizeof(char *) * (substs_count + 1)); //ještě by se měly dodělat takový ty srandy aby to ošetřovalo když se realloc nepovede atd.
 
         }
     }
@@ -100,12 +102,48 @@ char** my_split(char line[], char separator, int line_length, int *result_len)
 void set_ctor(Set *s, char **items, int row, int items_len)
 {
     s->row = row;
+    s->items = malloc(items_len * sizeof(char *));
     for (int i = 1; i < items_len; i++)
     {
-        strcpy(s->items[i], items[i]);
+        s->items[i - 1] = malloc(strlen(items[i]) + 1);
+        strcpy(s->items[i - 1], items[i]);
         s->size = i;
     }
 }
+
+void set_dtor(Set *s)
+{
+    s->row = 0;
+    for (int i = 0; i < s->size; i++){
+        free(s->items[i]);
+    }
+    free(s->items);
+    s->items = NULL;
+    s->size = 0;
+}
+
+void setarray_ctor(SetArray *setar){
+    setar->len = 0;
+    setar->data = NULL;
+}
+
+void *setarray_inc(SetArray *setar)
+{
+    void *p = realloc(setar->data, (setar->len+1)*sizeof(Set));
+    if (p == NULL)
+        return NULL;
+    setar->len++;
+    return setar->data = p;
+}
+
+void *array_append(SetArray *setar, Set *s)
+{
+    if (array_inc(setar))
+        return person_copy(s, &setar->data[setar->len-1]); //musím použít jinou fci než set_ctor, protože ta je přizpůsobená na to, aby to předělala z toho stringu (prakticky jen trochu upravím ten creator, ale se správnýma indexama)
+    else
+        return NULL;
+}
+
 //VALIDATORS
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[])
@@ -174,37 +212,35 @@ void process_file(char filename[], char **result)
     }
 }
 
-void process_rows(char *lines[])
+void process_rows(char *lines[], SetArray *setar)
 {
     for (int i = 0; i < 1000; i++)
-    { //předávání toho řádku musím posunout o 1
+    {
         if (lines[i][0] == 'C')
         {
             //char **output = malloc(1 * sizeof(char *));
             int items_len = 0;
-            char **output = my_split(lines[i], ' ', strlen(lines[i]), &items_len);
-            printf("%d\n", items_len);
+            char **output_com = my_split(lines[i], ' ', strlen(lines[i]), &items_len);
             for (int i = 0; i < items_len; i++)
-            {
-                printf("for: %s\n", output[i]);
-            }
-            if (items_len == 3)
-                output[3] = "_";
-            printf("%s\n", output[3]);
-            process_operation(output[1], lines, atoi(output[2]), atoi(output[3]));
+            if (items_len == 3) output_com[3] = "_";
+            process_operation(output_com[1], lines, atoi(output_com[2]), atoi(output_com[3]));
 
             for (int i = 0; i < items_len; i++)
             {
-                free(output[i]);
+                free(output_com[i]);
             }
-            free(output);
+            free(output_com);
         }
 
-        //else if (lines[i][0] == 'S')
-        else
+        else if (lines[i][0] == 'S')
         {
+            int items_count = 0;
+            char **output_set = my_split(lines[i], ' ', strlen(lines[i]), &items_count);
+            Set s;
+            set_ctor(&s, output_set, i + 1, items_count);
 
-            printf("%s\n", lines[i]);
+            set_dtor(&s);
+
         }
     }
 }
@@ -341,6 +377,8 @@ int equals_com(int line1, int line2, char *lines[])
     printf("equals\n");
     return 0;
 }
+
+
 
 int reflexive_com(int line1, char *lines[])
 {
