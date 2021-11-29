@@ -71,7 +71,7 @@ int main(int argc, char const *argv[])
 }
 
 // UTILS
-// result has to be initialized with proper size and zeros as default (or other joker char), splitted strings will then replace the joker chars (not anymore, Sklenyho utrpení nás vyvedlo z této situace)
+// returns result, it is fully dynamic allocated 
 char** my_split(char line[], char separator, int line_length, int *result_len)
 {
     int subst_start = 0;  // where should creation of the substring start
@@ -99,7 +99,7 @@ char** my_split(char line[], char separator, int line_length, int *result_len)
     return result;
 }
 
-void set_ctor(Set *s, char **items, int row, int items_len)
+void set_ctor_array(Set *s, char **items, int row, int items_len)
 {
     s->row = row;
     s->items = malloc(items_len * sizeof(char *));
@@ -108,6 +108,18 @@ void set_ctor(Set *s, char **items, int row, int items_len)
         s->items[i - 1] = malloc(strlen(items[i]) + 1);
         strcpy(s->items[i - 1], items[i]);
         s->size = i;
+    }
+}
+
+void set_ctor(Set *s, char **items, int row, int items_len)
+{
+    s->row = row;
+    s->items = malloc(items_len * sizeof(char *));
+    for (int i = 0; i < items_len; i++)
+    {
+        s->items[i] = malloc(strlen(items[i]) + 1);
+        strcpy(s->items[i], items[i]);
+        s->size = i + 1;
     }
 }
 
@@ -136,10 +148,17 @@ void *setarray_inc(SetArray *setar)
     return setar->data = p;
 }
 
+void *set_copy(Set *src, Set *dst)
+{
+    set_ctor(dst, src->items, src->row, src->size);
+    return dst;
+}
+
+
 void *array_append(SetArray *setar, Set *s)
 {
-    if (array_inc(setar))
-        return person_copy(s, &setar->data[setar->len-1]); //musím použít jinou fci než set_ctor, protože ta je přizpůsobená na to, aby to předělala z toho stringu (prakticky jen trochu upravím ten creator, ale se správnýma indexama)
+    if (setarray_inc(setar))
+        return set_copy(s, &setar->data[setar->len-1]); //musím použít jinou fci než set_ctor, protože ta je přizpůsobená na to, aby to předělala z toho stringu (prakticky jen trochu upravím ten creator, ale se správnýma indexama)
     else
         return NULL;
 }
@@ -237,7 +256,23 @@ void process_rows(char *lines[], SetArray *setar)
             int items_count = 0;
             char **output_set = my_split(lines[i], ' ', strlen(lines[i]), &items_count);
             Set s;
-            set_ctor(&s, output_set, i + 1, items_count);
+            set_ctor_array(&s, output_set, i + 1, items_count);
+            printf("\n");
+            printf("row1: %d\n", s.row);
+            printf("size1: %d\n", s.size);
+            for (int i = 0; i < s.size; i++){
+                printf("string1: %s\n", s.items[i]);
+            }
+            printf("\n");
+            array_append(setar, &s);
+
+            for (int i = 0; i < setar->len; i++){
+                printf("row: %d\n", setar->data[i].row);
+                printf("size: %d\n", setar->data[i].size);
+                for (int j = 0; j < setar->data[i].size; j++){
+                    printf("string: %s\n", setar->data[i].items[j]);
+                }
+            }
 
             set_dtor(&s);
 
