@@ -99,7 +99,7 @@ char** my_split(char line[], char separator, int line_length, int *result_len)
     return result;
 }
 
-void set_ctor_array(Set *s, char **items, int row, int items_len)
+void set_ctor_from_array(Set *s, char **items, int row, int items_len)
 {
     s->row = row;
     s->items = malloc(items_len * sizeof(char *));
@@ -155,7 +155,7 @@ void *set_copy(Set *src, Set *dst)
 }
 
 
-void *array_append(SetArray *setar, Set *s)
+void *set_array_append(SetArray *setar, Set *s)
 {
     if (setarray_inc(setar))
         return set_copy(s, &setar->data[setar->len-1]); //musím použít jinou fci než set_ctor, protože ta je přizpůsobená na to, aby to předělala z toho stringu (prakticky jen trochu upravím ten creator, ale se správnýma indexama)
@@ -256,7 +256,7 @@ void process_rows(char *lines[], SetArray *setar)
             int items_count = 0;
             char **output_set = my_split(lines[i], ' ', strlen(lines[i]), &items_count);
             Set s;
-            set_ctor_array(&s, output_set, i + 1, items_count);
+            set_ctor_from_array(&s, output_set, i + 1, items_count);
             printf("\n");
             printf("row1: %d\n", s.row);
             printf("size1: %d\n", s.size);
@@ -264,7 +264,7 @@ void process_rows(char *lines[], SetArray *setar)
                 printf("string1: %s\n", s.items[i]);
             }
             printf("\n");
-            array_append(setar, &s);
+            set_array_append(setar, &s);
 
             for (int i = 0; i < setar->len; i++){
                 printf("row: %d\n", setar->data[i].row);
@@ -369,7 +369,10 @@ void process_operation(char command_name[], char *lines[], int line1, int line2)
 
 int empty_com(int line1, char *lines[])
 {
-    printf("empty\n");
+    int items_count = 0;
+    char **output_set = my_split(lines[line1 - 1], ' ', strlen(lines[line1 - 1]), &items_count);
+    Set s;
+    set_ctor_from_array(&s, output_set, line1, items_count);
     return 0;
 }
 int card_com(int line1, char *lines[])
