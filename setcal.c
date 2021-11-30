@@ -11,6 +11,8 @@ char** my_split(char line[], char separator, int line_length, int *result_len);
 //VALIDATORS
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[]);
+// Validates lines from file
+bool validate_lines(char lines[]);
 
 // MAIN FUNCTIONS
 // returns 1 if is end of file, else returns 0
@@ -187,7 +189,182 @@ int validate_user_input(int argc, char const *argv[])
     fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
 }
-
+// Validates lines from file
+bool validate_lines(char lines[])
+{
+    //array commandu, na poslednich dvou pozicich je TRUE a FALSE !!! (kvuli kontrole)
+    char *cmd_arr[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
+    int items_len = 0;
+    // prevede radek na array stringu
+    char **line_arr = my_split(lines, ' ', strlen(lines), &items_len);
+    // KONTROLA UNIVERSA A MNOZINY
+    if (strcmp(line_arr[0], "U") == 0 || strcmp(line_arr[0], "S") == 0)
+    {
+        for (int i = 1; i < items_len; i++)
+        {
+            for (int j = 0; j < 19; j++)
+            {
+                //umre kdyz se prvek jmenuje stejne jak command
+                if (strcmp(line_arr[i], cmd_arr[j]) == 0)
+                {
+                    fprintf(stderr, "Prvky se nesmi jmenovat stejne jako prikazy!\n");
+                    return false;
+                }
+            }
+            //kontroluje znaky
+            for (size_t j = 0; j < strlen(line_arr[i]); j++)
+            {
+                if (!((line_arr[i][j] >= 'a' && line_arr[i][j] <= 'z') || (line_arr[i][j] >= 'A' && line_arr[i][j] <= 'Z')))
+                {
+                    fprintf(stderr, "Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy!\n");
+                    return false;
+                }
+            }
+            // kontroluje jestli jsou prvky ruzne
+            for (int j = 1; j < items_len; j++)
+            {
+                if (i != j)
+                {
+                    if (strcmp(line_arr[i], line_arr[j]) == 0)
+                    {
+                        if (*line_arr[0] == 'U')
+                        {
+                            fprintf(stderr, "Vsechny prvky universa musi byt ruzne!\n");
+                            return false;
+                        }
+                        if (*line_arr[0] == 'S')
+                        {
+                            fprintf(stderr, "Vsechny prvky mnoziny musi byt ruzne!\n");
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //KONTROLA COMMANDU
+    else if (strcmp(line_arr[0], "C") == 0)
+    {
+        //vzdy ma 3 nebo 4 prvky takze tady to kdyztak umre hnedka na zacatku
+        if (items_len > 4 || items_len < 3)
+        {
+            fprintf(stderr, "Spatne zadany prikaz!\n");
+            return false;
+        }
+        //kontrola spravne zapsaneho commandu
+        bool is_cmd = false;
+        for (int i = 0; i < 17; i++)
+        {
+            if (strcmp(line_arr[1], cmd_arr[i]) == 0)
+            {
+                is_cmd = true;
+                break;
+            }
+        }
+        if (is_cmd == false)
+        {
+            fprintf(stderr, "Spatne zadany prikaz!\n");
+            return false;
+        }
+        //za commandem musi byt cislo radku 
+        if (items_len == 3)
+        {
+            for (size_t i = 0; i < strlen(line_arr[2]); i++)
+            {
+                if (!(line_arr[2][i] >= '0' && line_arr[2][i] <= '9'))
+                {
+                    fprintf(stderr, "Spatne zadany prikaz!\n");
+                    return false;
+                }
+            }
+        }
+        //za commnadem musi byt cisla dvou radku
+        if (items_len == 4)
+        {
+            for (size_t i = 0; i < strlen(line_arr[2]); i++)
+            {
+                if (!(line_arr[2][i] >= '0' && line_arr[2][i] <= '9'))
+                {
+                    fprintf(stderr, "Spatne zadany prikaz!\n");
+                    return false;
+                }
+            }
+            for (size_t i = 0; i < strlen(line_arr[3]); i++)
+            {
+                if (!(line_arr[3][i] >= '0' && line_arr[3][i] <= '9'))
+                {
+                    fprintf(stderr, "Spatne zadany prikaz!\n");
+                    return false;
+                }
+            }
+        }
+    }
+    //KONTROLA RELACI
+    else if (strcmp(line_arr[0], "R") == 0)
+    {
+        //odstraneni zavorek
+        int move = 0;
+        for (int i = 1; i < items_len; i++)
+        {
+            for (size_t j = 0; j < strlen(line_arr[i]); j++)
+            {
+                if (line_arr[i][j] == ')')
+                {
+                    line_arr[i][j] = '\0';
+                }
+                if (line_arr[i][j] == '(')
+                {
+                    move++;
+                }
+                line_arr[i][j] = line_arr[i][j + move];
+            }
+            move = 0;
+        }
+        //umre kdyz se prvky jmenuji stejne jako commandy
+        for (int i = 1; i < items_len; i++)
+        {
+            for (int j = 0; j < 19; j++)
+            {
+                if (strcmp(line_arr[i], cmd_arr[j]) == 0)
+                {
+                    fprintf(stderr, "Prvky se nesmi jmenovat stejne jako prikazy!\n");
+                    return false;
+                }
+            }
+            //kontrola znaku
+            for (size_t j = 0; j < strlen(line_arr[i]); j++)
+            {
+                if (!((line_arr[i][j] >= 'a' && line_arr[i][j] <= 'z') || (line_arr[i][j] >= 'A' && line_arr[i][j] <= 'Z')))
+                {
+                    fprintf(stderr, "Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy!\n");
+                    return false;
+                }
+            }
+        }
+        //kontroluje ze relace neobsahuje 2 stejne dvojice 
+        for (int i = 1; i < items_len; i+=2)
+        {
+            for (int j = 1; j < items_len; j+=2)
+            {
+                if (i != j)
+                {
+                    if (strcmp(line_arr[i], line_arr[j]) == 0 && strcmp(line_arr[i+1], line_arr[j+1]) == 0)
+                    {
+                        fprintf(stderr, "Relace nesmi obsahovat vice stejnych dvojic!\n");
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    //jakkoliv jinak zadany prvni slovo
+    else
+    {
+        fprintf(stderr, "Spatne zadany identifikator radku!\n");
+        return false;
+    }
+    return true;
+}
 // MAIN FUNCTIONS
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line)
