@@ -4,6 +4,7 @@ split2.c
 # Prerequisites
 *.d
 
+.vscode
 # Object files
 *.o
 *.ko

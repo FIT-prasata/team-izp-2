@@ -14,6 +14,14 @@ typedef struct
     char **items;
 } Set;
 
+//struct for Array of Sets
+typedef struct
+{
+    int len;
+    Set *data;
+} SetArray;
+
+//------STRUCRS-FOR-SESSIONS-----------------------------------------------------------------------------
 typedef struct
 {
     char *left_val;
@@ -24,14 +32,8 @@ typedef struct
 {
     int size;
     int row;
-    Session_pair *pair;
+    Session_pair *pairs;
 } Session;
-//struct for Array of Sets
-typedef struct
-{
-    int len;
-    Set *data;
-} SetArray;
 
 //______FUNCTION_HEADERS_________________________________________________________________________________
 //------UTILS--------------------------------------------------------------------------------------------
@@ -39,22 +41,22 @@ typedef struct
 char **my_split(char string[], char separator, int line_length, int *result_len);
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line);
-// creates array of lines from file
-void process_file(char filename[], char **result);
+// creates array of lines from file, returns number of lines
+int process_file(char filename[], char **result);
 // TODO
-void process_rows(char *lines_array[], SetArray *setar);
+void process_rows(char *lines_array[], int line_count);
 // TODO
 void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num);
-
+void remove_all_chars(char *str, char c);
 //------VALIDATORS----------------------------------------------------------------------------------------
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[]);
 
 //------SET-HELPERS------
-void set_ctor_string(Set *s, char *string, int row);
-void set_ctor(Set *s, char **items, int row, int items_len);
+void set_ctor_from_line_string(Set *set, char *string, int row);
+void set_ctor(Set *set, char **items, int row, int items_len);
 void set_print_from_array(char **items, int items_count);
-void set_dtor(Set *s);
+void set_dtor(Set *set);
 void setarray_ctor(SetArray *setar);
 void *setarray_inc(SetArray *setar);
 void *set_copy(Set *src, Set *dst);
@@ -71,7 +73,17 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[]);
 int subset_com(int first_line_num, int second_line_num, char *lines_array[]);
 int equals_com(int first_line_num, int second_line_num, char *lines_array[]);
 
-//------RELATIONS-COMMANDS------
+//------SESSION-HELPERS-------
+void session_init(Session *session, int row);
+void session_append(Session *session, Session_pair *pair);
+void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val);
+void session_pair_dtor(Session_pair *pair);
+void session_ctor_from_line_string(Session *session, char *string, int row);
+void session_ctor(Session *session, Session_pair *pairs, int row, int size);
+void session_print(Session session);
+void session_dtor(Session *session);
+
+//------SESSION-COMMANDS------
 int reflexive_com(int first_line_num, char *lines_array[]);
 int symmetric_com(int first_line_num, char *lines_array[]);
 int antisymmetric_com(int first_line_num, char *lines_array[]);
@@ -87,12 +99,21 @@ int bijective_com(int first_line_num, char *lines_array[]);
 
 int main(int argc, char const *argv[])
 {
-    SetArray setar;
-    setarray_ctor(&setar);
+
     char *lines_array[1000];
     char filename[10] = "file.txt";
-    process_file(filename, lines_array);
-    process_rows(lines_array, &setar);
+    int line_count = process_file(filename, lines_array);
+    process_rows(lines_array, line_count);
+
+    printf("___TESTING___\n");
+    Session s;
+    Session s2;
+    char str[20] = "R (a b) (c d) (e f)";
+    char str2[200] = "R (grunm brum) (aaa hovno) (bysek kokot) (ahoj igor)";
+    session_ctor_from_line_string(&s, str, 5);
+    session_ctor_from_line_string(&s2, str2, 1);
+    session_print(s);
+    session_print(s2);
     return 0;
 }
 
@@ -110,7 +131,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
         if ((string[i] == separator) || (string[i] == '\0'))
         {
             substr = (char *)realloc(substr, (i - subst_start) + 1);      // reallocing dummy with size of string +1 for \0 char
-            strncpy(substr, &string[subst_start], i - subst_start);         // giving right value to substring
+            strncpy(substr, &string[subst_start], i - subst_start);       // giving right value to substring
             substr[i - subst_start] = '\0';                               // adding 0 to end of substring
             result[substs_count] = (char *)malloc((i - subst_start) + 1); // allocating result size
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
@@ -150,24 +171,27 @@ int readline(FILE *file, char *line)
     return 1;
 }
 
-// creates array of lines from file
-void process_file(char filename[], char **result)
+// creates array of lines from file, returns line count
+int process_file(char filename[], char **result)
 {
     FILE *file;
+    int line_count;
     file = fopen(filename, "r");
     for (int i = 0; i < 1000; i++)
     {
         result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
         if (readline(file, result[i]))
         {
+            line_count = i+1;
             break;
         }
     }
+    return line_count;
 }
 
-void process_rows(char *lines_array[], SetArray *setar)
+void process_rows(char *lines_array[], int line_count)
 {
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < line_count; i++)
     {
         if (lines_array[i][0] == 'C')
         {
@@ -231,7 +255,7 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
     {
         equals_com(first_line_num, second_line_num, lines_array);
     }
-    //RELATIONS
+    //SESSIONS
     else if (!strcmp(command_name, "reflexive"))
     {
         reflexive_com(first_line_num, lines_array);
@@ -277,6 +301,17 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
         fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
     }
 }
+void remove_all_chars(char *str, char c)
+{
+    char *pr = str, *pw = str;
+    while (*pr)
+    {
+        *pw = *pr++;
+        pw += (*pw != c);
+    }
+    *pw = '\0';
+}
+
 //------VALIDATORS------
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[])
@@ -411,7 +446,7 @@ bool validate_lines(char lines_array[])
             }
         }
     }
-    // RELATIONS VALIDATION
+    // SESSIONS VALIDATION
     else if (strcmp(line_arr[0], "R") == 0)
     {
         // parenthesis removal
@@ -478,24 +513,24 @@ bool validate_lines(char lines_array[])
     return true;
 }
 //------SET-HELPERS------
-void set_ctor_string(Set *set, char *string, int row)
+void set_ctor_from_line_string(Set *set, char *string, int row)
 {
     int items_count = 0;
-    char **output_set = my_split(string, ' ', strlen(string), &items_count);
+    char **splitted_line = my_split(string, ' ', strlen(string), &items_count);
     set->row = row;
     set->size = 0;
     set->items = malloc(items_count * sizeof(char *));
     for (int i = 1; i < items_count; i++)
     {
-        set->items[i - 1] = malloc(strlen(output_set[i]) + 1);
-        strcpy(set->items[i - 1], output_set[i]);
+        set->items[i - 1] = malloc(strlen(splitted_line[i]) + 1);
+        strcpy(set->items[i - 1], splitted_line[i]);
         set->size = i;
     }
     for (int i = 0; i < items_count; i++)
     {
-        free(output_set[i]);
+        free(splitted_line[i]);
     }
-    free(output_set);
+    free(splitted_line);
 }
 
 void set_ctor(Set *set, char **items, int row, int items_len)
@@ -529,16 +564,16 @@ void set_print_from_array(char **items, int items_count)
         printf("{}\n");
 }
 
-void set_dtor(Set *s)
+void set_dtor(Set *set)
 {
-    s->row = 0;
-    for (int i = 0; i < s->size; i++)
+    set->row = 0;
+    for (int i = 0; i < set->size; i++)
     {
-        free(s->items[i]);
+        free(set->items[i]);
     }
-    free(s->items);
-    s->items = NULL;
-    s->size = 0;
+    free(set->items);
+    set->items = NULL;
+    set->size = 0;
 }
 
 void setarray_ctor(SetArray *setar)
@@ -574,7 +609,7 @@ void *set_array_append(SetArray *setar, Set *s)
 int is_empty_com(int first_line_num, char *lines_array[])
 {
     Set set;
-    set_ctor_string(&set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
     if (set.size == 0)
         printf("true");
     else
@@ -585,7 +620,7 @@ int is_empty_com(int first_line_num, char *lines_array[])
 int card_com(int first_line_num, char *lines_array[])
 {
     Set s;
-    set_ctor_string(&s, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&s, lines_array[first_line_num - 1], first_line_num);
     printf("%d\n", s.size);
     set_dtor(&s);
     return 0;
@@ -594,8 +629,8 @@ int complement_com(int first_line_num, char *lines_array[])
 {
     Set set;
     Set universe;
-    set_ctor_string(&set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&universe, lines_array[0], 1);
+    set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&universe, lines_array[0], 1);
     int items_count_comp = 0;
     int is_identical = 0;
     char **comp_arr = malloc(sizeof(char *));
@@ -632,8 +667,8 @@ int union_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     char **uni_array = malloc(sizeof(char *));
     int items_count_uni = 0, is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
@@ -677,8 +712,8 @@ int intersect_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     char **inter_array = malloc(sizeof(char *));
     int items_count_inter = 0, is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
@@ -714,8 +749,8 @@ int minus_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     char **min_array = malloc(sizeof(char *));
     int items_count_min = 0, is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
@@ -751,8 +786,8 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     int is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
     {
@@ -766,7 +801,7 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
         }
         if (is_identical == 0)
         {
-            printf("false\n");
+            printf("false\n"); // TODO FIX
             set_dtor(&first_set);
             set_dtor(&second_set);
             return 0;
@@ -775,23 +810,23 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
     }
     set_dtor(&first_set);
     set_dtor(&second_set);
-    printf("true\n");
+    printf("true\n"); // TODO FIX
     return 1;
 }
 int subset_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     if (subseteq_com(first_line_num, second_line_num, lines_array) && !equals_com(first_line_num, second_line_num, lines_array))
-        printf("true\n");
+        printf("true\n"); // TODO FIX
     else
-        printf("false\n");
+        printf("false\n"); // TODO FIX
     return 0;
 }
 int equals_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     int is_identical = 0;
     if (first_set.size == second_set.size)
     {
@@ -826,7 +861,80 @@ int equals_com(int first_line_num, int second_line_num, char *lines_array[])
     return 0;
 }
 
-//------RELATION-COMMANDS------
+//------SESSION-HELPERS-------
+void session_init(Session *session, int row) {
+    session->row = row;
+    session->size= 0;
+    session->pairs=NULL;
+}
+
+void session_append(Session *session, Session_pair *pair) {
+    session->size += 1;
+    session->pairs = realloc(session->pairs, session->size*sizeof(Session_pair));
+    session->pairs[session->size-1].left_val = malloc(strlen(pair->left_val)*sizeof(char *));
+    session->pairs[session->size-1].left_val = pair->left_val;
+    session->pairs[session->size-1].right_val = malloc(strlen(pair->right_val)*sizeof(char *));
+    session->pairs[session->size-1].right_val = pair->right_val;
+
+}
+void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val)
+{
+    pair->left_val = malloc(strlen(left_val) * sizeof(char *));
+    pair->right_val = malloc(strlen(right_val) * sizeof(char *));
+    pair->left_val = left_val;
+    pair->right_val = right_val;
+}
+void session_pair_dtor(Session_pair *pair) {
+    free(pair->left_val);
+    free(pair->right_val);
+}
+
+void session_ctor_from_line_string(Session *session, char *string, int row)
+{
+    session_init(session, row);
+    int items_count = 0;
+    char *working_string;
+    working_string = malloc(strlen(string) * sizeof(char *));
+    strcpy(working_string, string);
+    remove_all_chars(working_string, ')');
+    remove_all_chars(working_string, '(');
+    remove_all_chars(working_string, 'R');
+
+    char **splitted_line = my_split(working_string, ' ', strlen(working_string), &items_count);
+    Session_pair tmp_pair;
+    for (int i = 1; i < items_count; i+=2)
+    {   
+        session_pair_ctor(&tmp_pair, splitted_line[i], splitted_line[i+1]);
+        session_append(session, &tmp_pair);
+    }
+    
+    session_pair_dtor(&tmp_pair);
+    
+}
+void session_ctor(Session *session, Session_pair *pairs, int row, int size) {
+    for (int i = 0; i < size; i++)
+    {
+        session_append(session, &(pairs[i]));
+    }
+    
+}
+void session_print(Session session) {
+    printf("R ");
+    for (int i = 0; i < session.size; i++)
+    {
+        printf("(%s %s) ", session.pairs[i].left_val, session.pairs[i].right_val);
+    }
+    printf("\n");
+}
+void session_dtor(Session *session) {
+    for (int i = 0; i < session->size; i++)
+    {
+        session_pair_dtor(&(session->pairs[i]));
+    }
+    free(session->pairs);
+}
+
+//------SESSION-COMMANDS------
 int reflexive_com(int first_line_num, char *lines_array[])
 {
     printf("reflexive\n");
