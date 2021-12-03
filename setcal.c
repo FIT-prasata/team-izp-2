@@ -3,18 +3,18 @@
 #include <string.h>
 #include <stdbool.h>
 
-//_______DEFINITIONS__________________________________________________________________________________
+//_______DEFINITIONS/CONSTANTS__________________________________________________________________________________
 #define DEFAULT_LINE_SIZE 30
-const char *banned_strings[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
-const int num_banned_strings = 19;
-const char *valid_line_identifiers[4] = {"U", "S", "C", "R"};
-const int num_valid_line_identifiers = 4;
-const char *singular_commands[10] = {"empty", "card", "complement", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain"};
-const int num_singular_commands = 10;
-const char *binary_commands[6] = {"union", "intersect", "minus", "subseteq", "subset", "equals"};
-const int num_binary_commands = 6;
-const char *tertiary_commands[3] = {"injective", "surjective", "bijective"};
-const int num_tertiary_commands = 3;
+const char *BANNED_STRINGS[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
+const int NUM_BANNED_STRINGS = 19;
+const char *VALID_LINE_IDENTIFIERS[4] = {"U", "S", "C", "R"};
+const int NUM_VALID_LINE_IDENTIFIERS = 4;
+const char *SINGULAR_COMMANDS[10] = {"empty", "card", "complement", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain"};
+const int NUM_SINGULAR_COMMANDS = 10;
+const char *BINARY_COMMANDS[6] = {"union", "intersect", "minus", "subseteq", "subset", "equals"};
+const int NUM_BINARY_COMMANDS = 6;
+const char *TERTIARY_COMMANDS[3] = {"injective", "surjective", "bijective"};
+const int NUM_TERTIARY_COMMANDS = 3;
 //------STRUCTS-FOR-SETS------------------------------------------------------------------------------
 typedef struct
 {
@@ -363,9 +363,9 @@ void subval_universe_chars_max_len(char **universe_array, int universe_size, int
 int subval_valid_line_identifier(char *identifier, int *is_error, int line_num)
 {
     int is_valid = 0;
-    for (int i = 0; i < num_valid_line_identifiers; i++)
+    for (int i = 0; i < NUM_VALID_LINE_IDENTIFIERS; i++)
     {
-        if (!strcmp(identifier, valid_line_identifiers[i]))
+        if (!strcmp(identifier, VALID_LINE_IDENTIFIERS[i]))
         {
             is_valid = 1;
         }
@@ -383,9 +383,9 @@ void subval_banned_strings(char **splitted_line, int num_items, int *is_error, i
 {
     for (int i = 1; i < num_items; i++)
     {
-        for (int j = 0; j < num_banned_strings; j++)
+        for (int j = 0; j < NUM_BANNED_STRINGS; j++)
         {
-            if (!strcmp(splitted_line[i], banned_strings[j]))
+            if (!strcmp(splitted_line[i], BANNED_STRINGS[j]))
             {
                 *is_error = 1;
                 fprintf(stderr, "Chyba na radku %d: Bylo pouzito zakazane slovo: '%s' \n", line_num, splitted_line[i]);
@@ -471,9 +471,9 @@ void subval_values_from_universe(char **splitted_line, int num_items, int *is_er
 int subval_get_num_params(char *command)
 {
     int num_params = 0;
-    for (int i = 0; i < num_singular_commands; i++)
+    for (int i = 0; i < NUM_SINGULAR_COMMANDS; i++)
     {
-        if (!strcmp(command, singular_commands[i]))
+        if (!strcmp(command, SINGULAR_COMMANDS[i]))
         {
             num_params = 1;
             break;
@@ -481,9 +481,9 @@ int subval_get_num_params(char *command)
     }
     if (!num_params)
     {
-        for (int i = 0; i < num_binary_commands; i++)
+        for (int i = 0; i < NUM_BINARY_COMMANDS; i++)
         {
-            if (!strcmp(command, binary_commands[i]))
+            if (!strcmp(command, BINARY_COMMANDS[i]))
             {
                 num_params = 2;
                 break;
@@ -492,9 +492,9 @@ int subval_get_num_params(char *command)
     }
     if (!num_params)
     {
-        for (int i = 0; i < num_tertiary_commands; i++)
+        for (int i = 0; i < NUM_TERTIARY_COMMANDS; i++)
         {
-            if (!strcmp(command, tertiary_commands[i]))
+            if (!strcmp(command, TERTIARY_COMMANDS[i]))
             {
                 num_params = 3;
                 break;
