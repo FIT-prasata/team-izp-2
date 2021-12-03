@@ -104,26 +104,6 @@ int main(int argc, char const *argv[])
     char filename[10] = "file.txt";
     int line_count = process_file(filename, lines_array);
     process_rows(lines_array, line_count);
-
-    printf("___TESTING___\n");
-    Session s;
-    Session s2;
-    Session s3;
-    Session s4;
-    char str[26] = "R (a b) (c d) (e f) (g h)";
-    char str2[200] = "R (grunm brum) (aaa hovno) (bysek kokot) (ahoj igor)";
-    char str3[200] = "R (1111 2222) (4444 5555) (6666 7777) (8888 9999)";
-    char str4[200] = "R (ff cc) (ss yy) (kk aa) (ww ll)";
-
-    session_ctor_from_line_string(&s, str, 5);
-    session_ctor_from_line_string(&s2, str2, 1);
-    session_ctor_from_line_string(&s3, str3, 1);
-    session_ctor_from_line_string(&s4, str4, 1);
-    printf("%s %s \n", s.pairs[2].left_val, s.pairs[2].right_val);
-    session_print(s);
-    session_print(s2);
-    session_print(s3);
-    session_print(s4);
     return 0;
 }
 
@@ -811,7 +791,7 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
         }
         if (is_identical == 0)
         {
-            printf("false\n"); // TODO FIX
+            printf("false\n");
             set_dtor(&first_set);
             set_dtor(&second_set);
             return 0;
@@ -820,16 +800,66 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
     }
     set_dtor(&first_set);
     set_dtor(&second_set);
-    printf("true\n"); // TODO FIX
-    return 1;
+    printf("true\n");
+    return 0;
 }
 int subset_com(int first_line_num, int second_line_num, char *lines_array[])
 {
-    if (subseteq_com(first_line_num, second_line_num, lines_array) && !equals_com(first_line_num, second_line_num, lines_array))
-        printf("true\n"); // TODO FIX
-    else
-        printf("false\n"); // TODO FIX
-    return 0;
+    Set first_set;
+    Set second_set;
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    int is_identical = 0;
+    if (first_set.size != second_set.size) {
+        for (int i = 0; i < first_set.size; i++)
+        {
+            for (int j = 0; j < second_set.size; j++)
+            {
+                if (!strcmp(first_set.items[i], second_set.items[j]))
+                {
+                    is_identical = 1;
+                    break;
+                }
+            }
+            if (is_identical == 0)
+            {
+                printf("false\n"); 
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_identical = 0;
+        }
+        printf("true\n"); 
+        set_dtor(&first_set);
+        set_dtor(&second_set);
+        return 0;
+    }
+    else {
+        for (int i = 0; i < first_set.size; i++)
+        {
+            for (int j = 0; j < second_set.size; j++)
+            {
+                if (!strcmp(first_set.items[i], second_set.items[j]))
+                {
+                    is_identical = 1;
+                    break;
+                }
+            }
+            if (is_identical == 0)
+            {
+                printf("true\n"); 
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_identical = 0;
+        }
+        printf("false\n"); 
+        set_dtor(&first_set);
+        set_dtor(&second_set);
+        return 0;
+    }
 }
 int equals_com(int first_line_num, int second_line_num, char *lines_array[])
 {
@@ -862,7 +892,7 @@ int equals_com(int first_line_num, int second_line_num, char *lines_array[])
         set_dtor(&first_set);
         set_dtor(&second_set);
         printf("true\n");
-        return 1;
+        return 0;
     }
     else
         printf("false\n");
@@ -877,7 +907,6 @@ void session_init(Session *session, int row) {
     session->size= 0;
     session->pairs=NULL;
 }
-
 void session_append(Session *session, Session_pair *pair) {
     session->size += 1;
     session->pairs = realloc(session->pairs, session->size*sizeof(Session_pair));
@@ -899,7 +928,6 @@ void session_pair_dtor(Session_pair *pair) {
     free(pair->left_val);
     free(pair->right_val);
 }
-
 void session_ctor_from_line_string(Session *session, char *string, int row)
 {
     session_init(session, row);
@@ -948,33 +976,142 @@ void session_dtor(Session *session) {
 //------SESSION-COMMANDS------
 int reflexive_com(int first_line_num, char *lines_array[])
 {
-    printf("reflexive\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    char **ref_array = malloc(session.size * sizeof(char *));
+    int is_identical = 0;
+    /*
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < session.size; j++) {
+            if (is_identical == 1) {
+                i++;
+                is_identical = 0;
+            }
+
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val)) {
+                if (!strcmp(session.pairs[j].left_val, session.pairs[j].right_val)) {
+                    is_identical = 1;
+                    printf("jo");
+                }
+            }
+            if (is_identical==1) {
+                break;
+            }
+        }
+    }
+    */
     return 0;
 }
 int symmetric_com(int first_line_num, char *lines_array[])
 {
-    printf("symetric\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    int is_inverse = 0;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < session.size; j++) {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val)) {
+                is_inverse = 1;
+                break;
+            }
+        }
+        if (!is_inverse) {
+            session_dtor(&session);
+            printf("false");
+            return 0;
+        }
+        is_inverse = 0;
+    }
+    session_dtor(&session);
+    printf("true");
     return 0;
 }
 int antisymmetric_com(int first_line_num, char *lines_array[])
 {
-    printf("antisymmetric\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    int is_inverse = 1;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < session.size; j++) {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val) && strcmp(session.pairs[i].right_val, session.pairs[i].left_val) && strcmp(session.pairs[j].right_val, session.pairs[j].left_val)) {
+                is_inverse = 0;
+                break;
+            }
+        }
+        if (!is_inverse) {
+            session_dtor(&session);
+            printf("false");
+            return 0;
+        }
+        is_inverse = 1;
+    }
+    session_dtor(&session);
+    printf("true");
     return 0;
+    
 }
 int transitive_com(int first_line_num, char *lines_array[])
 {
-    printf("transitive\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    int is_identical = 0;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < session.size; j++) {
+            if (!strcmp(session.pairs[i].right_val, session.pairs[j].left_val)) {
+                for (int k = 0; k < session.size; k++) {
+                    if (!strcmp(session.pairs[k].left_val,session.pairs[i].left_val) && !strcmp(session.pairs[k].right_val, session.pairs[j].right_val)) {
+                        is_identical = 1;
+                        break;
+                    }
+                }
+                if (!is_identical) {
+                    session_dtor(&session);
+                    printf("false");
+                    return 0;
+                }
+                is_identical = 0;
+                break;
+            }
+        }
+    }
+    session_dtor(&session);
+    printf("true");
     return 0;
 }
 int function_com(int first_line_num, char *lines_array[])
 {
-    printf("function\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    for (int i = 0; i < session.size; i++) {
+        for (int j = i+1; j < session.size; j++) {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].left_val)) {
+                session_dtor(&session);
+                printf("false");
+                return 0;
+            }
+        }
+    }
+    session_dtor(&session);
+    printf("true");
     return 0;
 }
 int domain_com(int first_line_num, char *lines_array[])
 {
-    printf("domain\n");
-    return 0;
+    /*
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    char **domain_array = malloc(session.size * sizeof(char *));
+    int item_count = 0;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = i+1; j < session.size; j++) {
+            if (strcmp(session.pairs[i].left_val, session.pairs[j].left_val)) {
+                domain_array = realloc(domain_array, (item_count + 1) * sizeof(char *));
+                domain_array = malloc(strlen(session.pairs[j].left_val + 1) * sizeof(char *));
+                strcpy(domain_array[item_count], session.pairs[j].left_val);
+                item_count ++;
+            }
+        }
+    }
+    return 0; */
 }
 int codomain_com(int first_line_num, char *lines_array[])
 {
