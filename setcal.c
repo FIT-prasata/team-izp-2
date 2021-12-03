@@ -69,6 +69,9 @@ void subval_same_values_session(char **splitted_line, int num_items, int *is_err
 void subval_values_from_universe(char **splitted_line, int num_items, int *is_error, char **universe_array, int universe_size, int line_num);
 int subval_get_num_params(char *command);
 int validate_lines(char *lines_array[], int line_count);
+int validate_singular_command(const char *first_type, int first_line_number, char *lines_array[]);
+int validate_binary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *lines_array[]);
+int validate_terciary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *third_type, int third_line_number, char *lines_array[]);
 
 //------SET-HELPERS------
 void set_ctor_from_line_string(Set *set, char *string, int row);
@@ -617,6 +620,38 @@ int validate_lines(char *lines_array[], int line_count)
     }
     return 1;
 }
+
+int validate_singular_command(const char *first_type, int first_line_number, char *lines_array[])
+{
+    if (
+        !strcmp(first_type, lines_array[first_line_number - 1]))
+    {
+        return 1;
+    }
+    return 0;
+}
+int validate_binary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *lines_array[])
+{
+    if (
+        !(strcmp(first_type, lines_array[first_line_number - 1])) && 
+        !(strcmp(second_type, lines_array[second_line_number - 1])))
+    {
+        return 1;
+    }
+    return 0;
+}
+int validate_tertiary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, const char *third_type, int third_line_number, char *lines_array[])
+{
+    if (
+        !(strcmp(first_type, lines_array[first_line_number - 1])) && 
+        !(strcmp(second_type, lines_array[second_line_number - 1])) && 
+        !(strcmp(third_type, lines_array[third_line_number - 1])))
+    {
+        return 1;
+    }
+    return 0;
+}
+
 //------SET-HELPERS------
 void set_ctor_from_line_string(Set *set, char *string, int row)
 {
