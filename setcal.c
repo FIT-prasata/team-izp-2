@@ -108,12 +108,22 @@ int main(int argc, char const *argv[])
     printf("___TESTING___\n");
     Session s;
     Session s2;
-    char str[20] = "R (a b) (c d) (e f)";
+    Session s3;
+    Session s4;
+    char str[26] = "R (a b) (c d) (e f) (g h)";
     char str2[200] = "R (grunm brum) (aaa hovno) (bysek kokot) (ahoj igor)";
+    char str3[200] = "R (1111 2222) (4444 5555) (6666 7777) (8888 9999)";
+    char str4[200] = "R (ff cc) (ss yy) (kk aa) (ww ll)";
+
     session_ctor_from_line_string(&s, str, 5);
     session_ctor_from_line_string(&s2, str2, 1);
+    session_ctor_from_line_string(&s3, str3, 1);
+    session_ctor_from_line_string(&s4, str4, 1);
+    printf("%s %s \n", s.pairs[2].left_val, s.pairs[2].right_val);
     session_print(s);
     session_print(s2);
+    session_print(s3);
+    session_print(s4);
     return 0;
 }
 
@@ -872,9 +882,10 @@ void session_append(Session *session, Session_pair *pair) {
     session->size += 1;
     session->pairs = realloc(session->pairs, session->size*sizeof(Session_pair));
     session->pairs[session->size-1].left_val = malloc(strlen(pair->left_val)*sizeof(char *));
-    session->pairs[session->size-1].left_val = pair->left_val;
+    strcpy(session->pairs[session->size-1].left_val, pair->left_val);
     session->pairs[session->size-1].right_val = malloc(strlen(pair->right_val)*sizeof(char *));
-    session->pairs[session->size-1].right_val = pair->right_val;
+    strcpy(session->pairs[session->size-1].right_val, pair->right_val);
+
 
 }
 void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val)
