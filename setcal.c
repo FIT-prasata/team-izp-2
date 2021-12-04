@@ -3,9 +3,18 @@
 #include <string.h>
 #include <stdbool.h>
 
-//_______DEFINITIONS__________________________________________________________________________________
+//_______DEFINITIONS/CONSTANTS__________________________________________________________________________________
 #define DEFAULT_LINE_SIZE 30
-
+const char *BANNED_STRINGS[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
+const int NUM_BANNED_STRINGS = 19;
+const char *VALID_LINE_IDENTIFIERS[4] = {"U", "S", "C", "R"};
+const int NUM_VALID_LINE_IDENTIFIERS = 4;
+const char *SINGULAR_COMMANDS[10] = {"empty", "card", "complement", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain"};
+const int NUM_SINGULAR_COMMANDS = 10;
+const char *BINARY_COMMANDS[6] = {"union", "intersect", "minus", "subseteq", "subset", "equals"};
+const int NUM_BINARY_COMMANDS = 6;
+const char *TERTIARY_COMMANDS[3] = {"injective", "surjective", "bijective"};
+const int NUM_TERTIARY_COMMANDS = 3;
 //------STRUCTS-FOR-SETS------------------------------------------------------------------------------
 typedef struct
 {
@@ -14,6 +23,7 @@ typedef struct
     char **items;
 } Set;
 
+//------STRUCRS-FOR-SESSIONS-----------------------------------------------------------------------------
 typedef struct
 {
     char *left_val;
@@ -24,14 +34,8 @@ typedef struct
 {
     int size;
     int row;
-    Session_pair *pair;
+    Session_pair *pairs;
 } Session;
-//struct for Array of Sets
-typedef struct
-{
-    int len;
-    Set *data;
-} SetArray;
 
 //______FUNCTION_HEADERS_________________________________________________________________________________
 //------UTILS--------------------------------------------------------------------------------------------
@@ -39,26 +43,35 @@ typedef struct
 char **my_split(char string[], char separator, int line_length, int *result_len);
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line);
-// creates array of lines from file
-void process_file(char filename[], char **result);
+// creates array of lines from file, returns number of lines
+int process_file(char filename[], char **result);
 // TODO
-void process_rows(char *lines_array[], SetArray *setar);
+void process_rows(char *lines_array[], int line_count);
 // TODO
-void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num);
-
+void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num, int third_line_num);
+void remove_all_chars(char *str, char c);
 //------VALIDATORS----------------------------------------------------------------------------------------
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[]);
+void subval_universe_chars_max_len(char **universe_array, int universe_size, int *is_error);
+int subval_valid_line_identifier(char *identifier, int *is_error, int line_num);
+void subval_banned_strings(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_char_type(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_same_values_set(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_same_values_session(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_values_from_universe(char **splitted_line, int num_items, int *is_error, char **universe_array, int universe_size, int line_num);
+int subval_get_num_params(char *command);
+int validate_lines(char *lines_array[], int line_count);
+int validate_singular_command(const char *first_type, int first_line_number, char *lines_array[]);
+int validate_binary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *lines_array[]);
+int validate_terciary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *third_type, int third_line_number, char *lines_array[]);
 
 //------SET-HELPERS------
-void set_ctor_string(Set *s, char *string, int row);
-void set_ctor(Set *s, char **items, int row, int items_len);
+void set_ctor_from_line_string(Set *set, char *string, int row);
+void set_ctor(Set *set, char **items, int row, int items_len);
 void set_print_from_array(char **items, int items_count);
-void set_dtor(Set *s);
-void setarray_ctor(SetArray *setar);
-void *setarray_inc(SetArray *setar);
+void set_dtor(Set *set);
 void *set_copy(Set *src, Set *dst);
-void *set_array_append(SetArray *setar, Set *s);
 
 //------SET-COMMANDS------
 int is_empty_com(int first_line_num, char *lines_array[]);
@@ -71,7 +84,17 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[]);
 int subset_com(int first_line_num, int second_line_num, char *lines_array[]);
 int equals_com(int first_line_num, int second_line_num, char *lines_array[]);
 
-//------RELATIONS-COMMANDS------
+//------SESSION-HELPERS-------
+void session_init(Session *session, int row);
+void session_append(Session *session, Session_pair *pair);
+void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val);
+void session_pair_dtor(Session_pair *pair);
+void session_ctor_from_line_string(Session *session, char *string, int row);
+void session_ctor(Session *session, Session_pair *pairs, int row, int size);
+void session_print(Session session);
+void session_dtor(Session *session);
+
+//------SESSION-COMMANDS------
 int reflexive_com(int first_line_num, char *lines_array[]);
 int symmetric_com(int first_line_num, char *lines_array[]);
 int antisymmetric_com(int first_line_num, char *lines_array[]);
@@ -79,21 +102,24 @@ int transitive_com(int first_line_num, char *lines_array[]);
 int function_com(int first_line_num, char *lines_array[]);
 int domain_com(int first_line_num, char *lines_array[]);
 int codomain_com(int first_line_num, char *lines_array[]);
-int injective_com(int first_line_num, char *lines_array[]);
-int surjective_com(int first_line_num, char *lines_array[]);
-int bijective_com(int first_line_num, char *lines_array[]);
+int injective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[]);
+int surjective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[]);
+int bijective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[]);
 
 //_______________MAIN_CODE____________________________________________________________________________________
 
 int main(int argc, char const *argv[])
 {
-    SetArray setar;
-    setarray_ctor(&setar);
+
     char *lines_array[1000];
-    char filename[10] = "file.txt";
-    process_file(filename, lines_array);
-    process_rows(lines_array, &setar);
-    return 0;
+    char filename[10] = "val.txt";
+    int line_count = process_file(filename, lines_array);
+    if (validate_lines(lines_array, line_count))
+    {
+        process_rows(lines_array, line_count);
+        return 0;
+    }
+    return 1;
 }
 
 //-------UTILS-------------------------------------------------------------------------------------------------
@@ -110,7 +136,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
         if ((string[i] == separator) || (string[i] == '\0'))
         {
             substr = (char *)realloc(substr, (i - subst_start) + 1);      // reallocing dummy with size of string +1 for \0 char
-            strncpy(substr, &string[subst_start], i - subst_start);         // giving right value to substring
+            strncpy(substr, &string[subst_start], i - subst_start);       // giving right value to substring
             substr[i - subst_start] = '\0';                               // adding 0 to end of substring
             result[substs_count] = (char *)malloc((i - subst_start) + 1); // allocating result size
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
@@ -123,6 +149,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
     free(substr);
     return result;
 }
+
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line)
 {
@@ -150,33 +177,43 @@ int readline(FILE *file, char *line)
     return 1;
 }
 
-// creates array of lines from file
-void process_file(char filename[], char **result)
+// creates array of lines from file, returns line count
+int process_file(char filename[], char **result)
 {
     FILE *file;
+    int line_count;
     file = fopen(filename, "r");
     for (int i = 0; i < 1000; i++)
     {
         result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
         if (readline(file, result[i]))
         {
+            line_count = i + 1;
             break;
         }
     }
+    return line_count;
 }
-
-void process_rows(char *lines_array[], SetArray *setar)
+void process_rows(char *lines_array[], int line_count)
 {
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < line_count; i++)
     {
         if (lines_array[i][0] == 'C')
         {
             int items_len = 0;
             char **output_com = my_split(lines_array[i], ' ', strlen(lines_array[i]), &items_len);
-            for (int i = 0; i < items_len; i++)
-                if (items_len == 3)
-                    output_com[3] = "_";
-            process_operation(output_com[1], lines_array, atoi(output_com[2]), atoi(output_com[3]));
+            output_com = realloc(output_com, 5 * sizeof(char *));
+            if (items_len == 3){
+                output_com[3] = malloc(sizeof(char *));
+                output_com[3] = "_";
+                output_com[4] = malloc(sizeof(char *));
+                output_com[4] = "_";
+            }
+            else if (items_len == 4){
+                output_com[4] = malloc(sizeof(char *));
+                output_com[4] = "_";
+            }
+            process_operation(output_com[1], lines_array, atoi(output_com[2]), atoi(output_com[3]), atoi(output_com[4]));
 
             for (int i = 0; i < items_len; i++)
             {
@@ -192,7 +229,7 @@ void process_rows(char *lines_array[], SetArray *setar)
 }
 
 // execute proper function when line contains command
-void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num)
+void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num, int third_line_num)
 {
     //SETS
     if (!strcmp(command_name, "empty"))
@@ -231,7 +268,7 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
     {
         equals_com(first_line_num, second_line_num, lines_array);
     }
-    //RELATIONS
+    //SESSIONS
     else if (!strcmp(command_name, "reflexive"))
     {
         reflexive_com(first_line_num, lines_array);
@@ -262,21 +299,41 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
     }
     else if (!strcmp(command_name, "injective"))
     {
-        injective_com(first_line_num, lines_array);
+        if (injective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+            printf("true\n");
+        }
+        else printf("false\n");
     }
     else if (!strcmp(command_name, "surjective"))
     {
-        surjective_com(first_line_num, lines_array);
+        if (surjective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+            printf("true\n");
+        }
+        else printf("false\n");
     }
     else if (!strcmp(command_name, "bijective"))
     {
-        bijective_com(first_line_num, lines_array);
+        if (bijective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+            printf("true\n");
+        }
+        else printf("false\n");
     }
     else
     {
         fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
     }
 }
+void remove_all_chars(char *str, char c)
+{
+    char *pr = str, *pw = str;
+    while (*pr)
+    {
+        *pw = *pr++;
+        pw += (*pw != c);
+    }
+    *pw = '\0';
+}
+
 //------VALIDATORS------
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[])
@@ -301,203 +358,327 @@ int validate_user_input(int argc, char const *argv[])
     fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
 }
-// Validates lines from file
-bool validate_lines(char lines_array[])
+void subval_universe_chars_max_len(char **universe_array, int universe_size, int *is_error)
 {
-    // array of banned strings
-    char *banned_strings[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
-    int num_items = 0;
-    // converts line to array
-    char **line_arr = my_split(lines_array, ' ', strlen(lines_array), &num_items);
-    // UNIVERSE AND SET VALIDATIONS
-    if (strcmp(line_arr[0], "U") == 0 || strcmp(line_arr[0], "S") == 0)
+    for (int i = 1; i < universe_size; i++)
     {
-        for (int i = 1; i < num_items; i++)
+        if (strlen(universe_array[i]) > 30)
         {
-            for (int j = 0; j < 19; j++)
+            *is_error = 1;
+            fprintf(stderr, "Chyba na radku 1: Hodnota v universe '%s' je prilis dlouha \n", universe_array[i]);
+        }
+    }
+}
+
+int subval_valid_line_identifier(char *identifier, int *is_error, int line_num)
+{
+    int is_valid = 0;
+    for (int i = 0; i < NUM_VALID_LINE_IDENTIFIERS; i++)
+    {
+        if (!strcmp(identifier, VALID_LINE_IDENTIFIERS[i]))
+        {
+            is_valid = 1;
+        }
+    }
+    if (is_valid)
+    {
+        return 1;
+    }
+    *is_error = 1;
+    fprintf(stderr, "Chyba na radku %d: Neplatna hodnota identifikatoru radku '%s' \n", line_num, identifier);
+    return 0;
+}
+
+void subval_banned_strings(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i++)
+    {
+        for (int j = 0; j < NUM_BANNED_STRINGS; j++)
+        {
+            if (!strcmp(splitted_line[i], BANNED_STRINGS[j]))
             {
-                // comparison with banned strings
-                if (strcmp(line_arr[i], banned_strings[j]) == 0)
-                {
-                    fprintf(stderr, "Prvky se nesmi jmenovat stejne jako prikazy!\n");
-                    return false;
-                }
+                *is_error = 1;
+                fprintf(stderr, "Chyba na radku %d: Bylo pouzito zakazane slovo: '%s' \n", line_num, splitted_line[i]);
             }
-            // char type validation
-            for (int j = 0; j < strlen(line_arr[i]); j++)
+        }
+    }
+}
+
+void subval_char_type(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i++)
+    {
+        for (int j = 0; j < strlen(splitted_line[i]); j++)
+        {
+            if (!(
+                    (splitted_line[i][j] >= 'a' && splitted_line[i][j] <= 'z') ||
+                    (splitted_line[i][j] >= 'A' && splitted_line[i][j] <= 'Z')))
             {
-                if (!((line_arr[i][j] >= 'a' && line_arr[i][j] <= 'z') || (line_arr[i][j] >= 'A' && line_arr[i][j] <= 'Z')))
-                {
-                    fprintf(stderr, "Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy!\n");
-                    return false;
-                }
+                *is_error = 1;
+                fprintf(stderr, "Chyba na radku %d: Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy.\n", line_num);
             }
-            // checks if there are no same values
-            for (int j = 1; j < num_items; j++)
+        }
+    }
+}
+
+void subval_same_values_set(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i++)
+    {
+        for (int j = i + 1; j < num_items; j++)
+        {
+            if (!strcmp(splitted_line[i], splitted_line[j]))
             {
-                if (i != j)
+                *is_error = 1;
+                if (!strcmp(splitted_line[0], "U"))
                 {
-                    if (strcmp(line_arr[i], line_arr[j]) == 0)
-                    {
-                        if (*line_arr[0] == 'U')
-                        {
-                            fprintf(stderr, "Vsechny prvky universa musi byt ruzne!\n");
-                            return false;
-                        }
-                        if (*line_arr[0] == 'S')
-                        {
-                            fprintf(stderr, "Vsechny prvky mnoziny musi byt ruzne!\n");
-                            return false;
-                        }
-                    }
+                    fprintf(stderr, "Chyba na radku %d: Vsechny prvky univerza musi byt ruzne.\n", line_num);
+                }
+                else
+                {
+                    fprintf(stderr, "Chyba na radku %d: Vsechny prvky mnoziny musi byt ruzne.\n", line_num);
                 }
             }
         }
     }
-    // COMMAND VALIDATIONS
-    else if (strcmp(line_arr[0], "C") == 0)
+}
+
+void subval_same_values_session(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i += 2)
     {
-        // checks if has accurate number of items
-        if (num_items > 4 || num_items < 3)
+        for (int j = i + 2; j < num_items; j += 2)
         {
-            fprintf(stderr, "Spatne zadany prikaz!\n");
-            return false;
-        }
-        // validation of correctly written command
-        bool is_cmd = false;
-        for (int i = 0; i < 17; i++)
-        {
-            if (strcmp(line_arr[1], banned_strings[i]) == 0)
+            if (!(strcmp(splitted_line[i], splitted_line[j])) && !(strcmp(splitted_line[i + 1], splitted_line[j + 1])))
             {
-                is_cmd = true;
+                *is_error = 1;
+                fprintf(stderr, "Chyba na radku %d: Vsechny prvky relace musi byt ruzne.\n", line_num);
+            }
+        }
+    }
+}
+
+void subval_values_from_universe(char **splitted_line, int num_items, int *is_error, char **universe_array, int universe_size, int line_num)
+{
+    int is_in_uni;
+    for (int i = 1; i < num_items; i++)
+    {
+        is_in_uni = 0;
+        for (int j = 1; j < universe_size; j++)
+        {
+            if (!strcmp(splitted_line[i], universe_array[j]))
+            {
+                is_in_uni = 1;
+            }
+        }
+        if (!is_in_uni)
+        {
+            *is_error = 1;
+            fprintf(stderr, "Chyba na radku %d: Prvek %s neni z universe\n", line_num, splitted_line[i]);
+        }
+    }
+}
+int subval_get_num_params(char *command)
+{
+    int num_params = 0;
+    for (int i = 0; i < NUM_SINGULAR_COMMANDS; i++)
+    {
+        if (!strcmp(command, SINGULAR_COMMANDS[i]))
+        {
+            num_params = 1;
+            break;
+        }
+    }
+    if (!num_params)
+    {
+        for (int i = 0; i < NUM_BINARY_COMMANDS; i++)
+        {
+            if (!strcmp(command, BINARY_COMMANDS[i]))
+            {
+                num_params = 2;
                 break;
             }
         }
-        if (is_cmd == false)
+    }
+    if (!num_params)
+    {
+        for (int i = 0; i < NUM_TERTIARY_COMMANDS; i++)
         {
-            fprintf(stderr, "Spatne zadany prikaz!\n");
-            return false;
-        }
-        // one line number is necessary after command
-        if (num_items == 3)
-        {
-            for (int i = 0; i < strlen(line_arr[2]); i++)
+            if (!strcmp(command, TERTIARY_COMMANDS[i]))
             {
-                if (!(line_arr[2][i] >= '0' && line_arr[2][i] <= '9'))
-                {
-                    fprintf(stderr, "Spatne zadany prikaz!\n");
-                    return false;
-                }
-            }
-        }
-        // two line numbers are necessary after command
-        if (num_items == 4)
-        {
-            for (int i = 0; i < strlen(line_arr[2]); i++)
-            {
-                if (!(line_arr[2][i] >= '0' && line_arr[2][i] <= '9'))
-                {
-                    fprintf(stderr, "Spatne zadany prikaz!\n");
-                    return false;
-                }
-            }
-            for (int i = 0; i < strlen(line_arr[3]); i++)
-            {
-                if (!(line_arr[3][i] >= '0' && line_arr[3][i] <= '9'))
-                {
-                    fprintf(stderr, "Spatne zadany prikaz!\n");
-                    return false;
-                }
+                num_params = 3;
+                break;
             }
         }
     }
-    // RELATIONS VALIDATION
-    else if (strcmp(line_arr[0], "R") == 0)
+    return num_params;
+}
+
+// Validates lines from file
+int validate_lines(char *lines_array[], int line_count)
+{
+    int is_error = 0;
+    int num_items;
+    char *working_string;
+    working_string = malloc(sizeof(char *));
+
+    if (lines_array[0][0] != 'U')
     {
-        // parenthesis removal
-        int move = 0;
-        for (int i = 1; i < num_items; i++)
+        is_error = 1;
+        fprintf(stderr, "Prvni radek musi byt universe");
+    }
+    else
+    {
+        int universe_size;
+        char *universe_string = malloc(strlen(lines_array[0]) * sizeof(char *));
+        strcpy(universe_string, lines_array[0]);
+        char **universe_array = my_split(universe_string, ' ', strlen(universe_string), &universe_size);
+
+        // lengt of values in universe
+        subval_universe_chars_max_len(universe_array, universe_size, &is_error);
+        for (int i = 0; i < line_count; i++)
         {
-            for (int j = 0; j < strlen(line_arr[i]); j++)
+            working_string = realloc(working_string, strlen(lines_array[i]) * sizeof(char *));
+            strcpy(working_string, lines_array[i]);
+
+            if (working_string[0] == 'R')
             {
-                if (line_arr[i][j] == ')')
-                {
-                    line_arr[i][j] = '\0';
-                }
-                if (line_arr[i][j] == '(')
-                {
-                    move++;
-                }
-                line_arr[i][j] = line_arr[i][j + move];
+                remove_all_chars(working_string, '(');
+                remove_all_chars(working_string, ')');
             }
-            move = 0;
-        }
-        // check for banned strings
-        for (int i = 1; i < num_items; i++)
-        {
-            for (int j = 0; j < 19; j++)
+
+            char **splitted_line = my_split(working_string, ' ', strlen(working_string), &num_items);
+            if (subval_valid_line_identifier(splitted_line[0], &is_error, i + 1))
             {
-                if (strcmp(line_arr[i], banned_strings[j]) == 0)
+                if (strcmp(splitted_line[0], "C"))
                 {
-                    fprintf(stderr, "Prvky se nesmi jmenovat stejne jako prikazy!\n");
-                    return false;
-                }
-            }
-            // char type validation
-            for (int j = 0; j < strlen(line_arr[i]); j++)
-            {
-                if (!((line_arr[i][j] >= 'a' && line_arr[i][j] <= 'z') || (line_arr[i][j] >= 'A' && line_arr[i][j] <= 'Z')))
-                {
-                    fprintf(stderr, "Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy!\n");
-                    return false;
-                }
-            }
-        }
-        // checks if there are no same pairs
-        for (int i = 1; i < num_items; i += 2)
-        {
-            for (int j = 1; j < num_items; j += 2)
-            {
-                if (i != j)
-                {
-                    if (strcmp(line_arr[i], line_arr[j]) == 0 && strcmp(line_arr[i + 1], line_arr[j + 1]) == 0)
+                    // compares whole line with banned strings
+                    subval_banned_strings(splitted_line, num_items, &is_error, i + 1);
+                    // chechs if all chars are big or small letters
+                    subval_char_type(splitted_line, num_items, &is_error, i + 1);
+                    // checks for duplicates
+                    if (strcmp(splitted_line[0], "R"))
                     {
-                        fprintf(stderr, "Relace nesmi obsahovat vice stejnych dvojic!\n");
-                        return false;
+                        subval_same_values_set(splitted_line, num_items, &is_error, i + 1);
+                    }
+                    else
+                    {
+                        subval_same_values_session(splitted_line, num_items, &is_error, i + 1);
+                    }
+                    // if not universe, checks if all values are from universe
+                    if (strcmp(splitted_line[0], "U"))
+                    {
+                        subval_values_from_universe(splitted_line, num_items, &is_error, universe_array, universe_size, i + 1);
+                    }
+                }
+                else
+                {
+                    // validates valid command input and number of params
+                    int num_params = subval_get_num_params(splitted_line[1]);
+                    if (num_params == 0)
+                    {
+                        is_error = 1;
+                        fprintf(stderr, "Chyba na radku %d: Neznamy prikaz: '%s'", i + 1, splitted_line[1]);
+                    }
+                    else if (num_params == 1)
+                    {
+                        if (num_items != 3)
+                        {
+                            is_error = 1;
+                            fprintf(stderr, "Chyba na radku %d: Nespravny pocet argumentu u prikazu: '%s'", i + 1, splitted_line[1]);
+                        }
+                    }
+                    else if (num_params == 2)
+                    {
+                        if (num_items != 4)
+                        {
+                            is_error = 1;
+                            fprintf(stderr, "Chyba na radku %d: Nespravny pocet argumentu u prikazu: '%s'", i + 1, splitted_line[1]);
+                        }
+                    }
+                    else if (num_params == 3)
+                    {
+                        if (num_items != 5)
+                        {
+                            is_error = 1;
+                            fprintf(stderr, "Chyba na radku %d: Nespravny pocet argumentu u prikazu: '%s'", i + 1, splitted_line[1]);
+                        }
                     }
                 }
             }
+            for (int i = 0; i < num_items; i++)
+            {
+                free(splitted_line[i]);
+            }
+            free(splitted_line);
         }
+        free(universe_string);
+        for (int i = 0; i < universe_size; i++)
+        {
+            free(universe_array[i]);
+        }
+        free(universe_array);
     }
-    // INVALID LINE IDENTIFIER
-    else
+    free(working_string);
+
+    if (is_error)
     {
-        fprintf(stderr, "Spatne zadany identifikator radku!\n");
-        return false;
+        return 0;
     }
-    return true;
+    return 1;
 }
+
+int validate_singular_command(const char *first_type, int first_line_number, char *lines_array[])
+{
+    if (
+        !strcmp(first_type, lines_array[first_line_number - 1]))
+    {
+        return 1;
+    }
+    return 0;
+}
+int validate_binary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *lines_array[])
+{
+    if (
+        !(strcmp(first_type, lines_array[first_line_number - 1])) && 
+        !(strcmp(second_type, lines_array[second_line_number - 1])))
+    {
+        return 1;
+    }
+    return 0;
+}
+int validate_tertiary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, const char *third_type, int third_line_number, char *lines_array[])
+{
+    if (
+        !(strcmp(first_type, lines_array[first_line_number - 1])) && 
+        !(strcmp(second_type, lines_array[second_line_number - 1])) && 
+        !(strcmp(third_type, lines_array[third_line_number - 1])))
+    {
+        return 1;
+    }
+    return 0;
+}
+
 //------SET-HELPERS------
-void set_ctor_string(Set *set, char *string, int row)
+void set_ctor_from_line_string(Set *set, char *string, int row)
 {
     int items_count = 0;
-    char **output_set = my_split(string, ' ', strlen(string), &items_count);
+    char **splitted_line = my_split(string, ' ', strlen(string), &items_count);
     set->row = row;
     set->size = 0;
     set->items = malloc(items_count * sizeof(char *));
     for (int i = 1; i < items_count; i++)
     {
-        set->items[i - 1] = malloc(strlen(output_set[i]) + 1);
-        strcpy(set->items[i - 1], output_set[i]);
+        set->items[i - 1] = malloc(strlen(splitted_line[i]) + 1);
+        strcpy(set->items[i - 1], splitted_line[i]);
         set->size = i;
     }
     for (int i = 0; i < items_count; i++)
     {
-        free(output_set[i]);
+        free(splitted_line[i]);
     }
-    free(output_set);
+    free(splitted_line);
 }
-
 void set_ctor(Set *set, char **items, int row, int items_len)
 {
     set->row = row;
@@ -509,7 +690,6 @@ void set_ctor(Set *set, char **items, int row, int items_len)
         set->size = i + 1;
     }
 }
-
 void set_print_from_array(char **items, int items_count)
 {
     printf("S ");
@@ -528,53 +708,28 @@ void set_print_from_array(char **items, int items_count)
     else
         printf("{}\n");
 }
-
-void set_dtor(Set *s)
+void set_dtor(Set *set)
 {
-    s->row = 0;
-    for (int i = 0; i < s->size; i++)
+    set->row = 0;
+    for (int i = 0; i < set->size; i++)
     {
-        free(s->items[i]);
+        free(set->items[i]);
     }
-    free(s->items);
-    s->items = NULL;
-    s->size = 0;
+    free(set->items);
+    set->items = NULL;
+    set->size = 0;
 }
-
-void setarray_ctor(SetArray *setar)
-{
-    setar->len = 0;
-    setar->data = NULL;
-}
-
-void *setarray_inc(SetArray *setar)
-{
-    void *p = realloc(setar->data, (setar->len + 1) * sizeof(Set));
-    if (p == NULL)
-        return NULL;
-    setar->len++;
-    return setar->data = p;
-}
-
 void *set_copy(Set *src, Set *dst)
 {
     set_ctor(dst, src->items, src->row, src->size);
     return dst;
 }
 
-void *set_array_append(SetArray *setar, Set *s)
-{
-    if (setarray_inc(setar))
-        return set_copy(s, &setar->data[setar->len - 1]); //musím použít jinou fci než set_ctor, protože ta je přizpůsobená na to, aby to předělala z toho stringu (prakticky jen trochu upravím ten creator, ale se správnýma indexama)
-    else
-        return NULL;
-}
-
 //------SET-COMMANDS------
 int is_empty_com(int first_line_num, char *lines_array[])
 {
     Set set;
-    set_ctor_string(&set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
     if (set.size == 0)
         printf("true");
     else
@@ -584,18 +739,18 @@ int is_empty_com(int first_line_num, char *lines_array[])
 }
 int card_com(int first_line_num, char *lines_array[])
 {
-    Set s;
-    set_ctor_string(&s, lines_array[first_line_num - 1], first_line_num);
-    printf("%d\n", s.size);
-    set_dtor(&s);
+    Set set;
+    set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
+    printf("%d\n", set.size);
+    set_dtor(&set);
     return 0;
 }
 int complement_com(int first_line_num, char *lines_array[])
 {
     Set set;
     Set universe;
-    set_ctor_string(&set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&universe, lines_array[0], 1);
+    set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&universe, lines_array[0], 1);
     int items_count_comp = 0;
     int is_identical = 0;
     char **comp_arr = malloc(sizeof(char *));
@@ -632,8 +787,8 @@ int union_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     char **uni_array = malloc(sizeof(char *));
     int items_count_uni = 0, is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
@@ -677,8 +832,8 @@ int intersect_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     char **inter_array = malloc(sizeof(char *));
     int items_count_inter = 0, is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
@@ -714,8 +869,8 @@ int minus_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     char **min_array = malloc(sizeof(char *));
     int items_count_min = 0, is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
@@ -751,8 +906,8 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     int is_identical = 0;
     for (int i = 0; i < first_set.size; i++)
     {
@@ -776,22 +931,74 @@ int subseteq_com(int first_line_num, int second_line_num, char *lines_array[])
     set_dtor(&first_set);
     set_dtor(&second_set);
     printf("true\n");
-    return 1;
+    return 0;
 }
 int subset_com(int first_line_num, int second_line_num, char *lines_array[])
 {
-    if (subseteq_com(first_line_num, second_line_num, lines_array) && !equals_com(first_line_num, second_line_num, lines_array))
+    Set first_set;
+    Set second_set;
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    int is_identical = 0;
+    if (first_set.size != second_set.size)
+    {
+        for (int i = 0; i < first_set.size; i++)
+        {
+            for (int j = 0; j < second_set.size; j++)
+            {
+                if (!strcmp(first_set.items[i], second_set.items[j]))
+                {
+                    is_identical = 1;
+                    break;
+                }
+            }
+            if (is_identical == 0)
+            {
+                printf("false\n");
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_identical = 0;
+        }
         printf("true\n");
+        set_dtor(&first_set);
+        set_dtor(&second_set);
+        return 0;
+    }
     else
+    {
+        for (int i = 0; i < first_set.size; i++)
+        {
+            for (int j = 0; j < second_set.size; j++)
+            {
+                if (!strcmp(first_set.items[i], second_set.items[j]))
+                {
+                    is_identical = 1;
+                    break;
+                }
+            }
+            if (is_identical == 0)
+            {
+                printf("true\n");
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_identical = 0;
+        }
         printf("false\n");
-    return 0;
+        set_dtor(&first_set);
+        set_dtor(&second_set);
+        return 0;
+    }
 }
 int equals_com(int first_line_num, int second_line_num, char *lines_array[])
 {
     Set first_set;
     Set second_set;
-    set_ctor_string(&first_set, lines_array[first_line_num - 1], first_line_num);
-    set_ctor_string(&second_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     int is_identical = 0;
     if (first_set.size == second_set.size)
     {
@@ -817,7 +1024,7 @@ int equals_com(int first_line_num, int second_line_num, char *lines_array[])
         set_dtor(&first_set);
         set_dtor(&second_set);
         printf("true\n");
-        return 1;
+        return 0;
     }
     else
         printf("false\n");
@@ -826,54 +1033,458 @@ int equals_com(int first_line_num, int second_line_num, char *lines_array[])
     return 0;
 }
 
-//------RELATION-COMMANDS------
+//------SESSION-HELPERS-------
+void session_init(Session *session, int row)
+{
+    session->row = row;
+    session->size = 0;
+    session->pairs = NULL;
+}
+void session_append(Session *session, Session_pair *pair)
+{
+    session->size += 1;
+    session->pairs = realloc(session->pairs, session->size * sizeof(Session_pair));
+    session->pairs[session->size - 1].left_val = malloc(strlen(pair->left_val) * sizeof(char *));
+    strcpy(session->pairs[session->size - 1].left_val, pair->left_val);
+    session->pairs[session->size - 1].right_val = malloc(strlen(pair->right_val) * sizeof(char *));
+    strcpy(session->pairs[session->size - 1].right_val, pair->right_val);
+}
+void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val)
+{
+    pair->left_val = malloc(strlen(left_val) * sizeof(char *));
+    pair->right_val = malloc(strlen(right_val) * sizeof(char *));
+    pair->left_val = left_val;
+    pair->right_val = right_val;
+}
+void session_pair_dtor(Session_pair *pair)
+{
+    free(pair->left_val);
+    free(pair->right_val);
+}
+void session_ctor_from_line_string(Session *session, char *string, int row)
+{
+    session_init(session, row);
+    int items_count = 0;
+    char *working_string;
+    working_string = malloc(strlen(string) * sizeof(char *));
+    strcpy(working_string, string);
+    remove_all_chars(working_string, ')');
+    remove_all_chars(working_string, '(');
+    remove_all_chars(working_string, 'R');
+
+    char **splitted_line = my_split(working_string, ' ', strlen(working_string), &items_count);
+    Session_pair tmp_pair;
+    for (int i = 1; i < items_count; i += 2)
+    {
+        session_pair_ctor(&tmp_pair, splitted_line[i], splitted_line[i + 1]);
+        session_append(session, &tmp_pair);
+    }
+
+    session_pair_dtor(&tmp_pair);
+}
+void session_ctor(Session *session, Session_pair *pairs, int row, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        session_append(session, &(pairs[i]));
+    }
+}
+void session_print(Session session)
+{
+    printf("R ");
+    for (int i = 0; i < session.size; i++)
+    {
+        printf("(%s %s) ", session.pairs[i].left_val, session.pairs[i].right_val);
+    }
+    printf("\n");
+}
+void session_dtor(Session *session)
+{
+    for (int i = 0; i < session->size; i++)
+    {
+        session_pair_dtor(&(session->pairs[i]));
+    }
+    free(session->pairs);
+}
+
+//------SESSION-COMMANDS------
 int reflexive_com(int first_line_num, char *lines_array[])
 {
-    printf("reflexive\n");
+    Session session;
+    Set universe;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&universe, lines_array[0], 1);
+    int is_reflexive = 0;
+
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < session.size; j++) {
+            if (!strcmp(universe.items[i], session.pairs[j].left_val) && !strcmp(universe.items[i], session.pairs[j].right_val)) {
+                is_reflexive = 1;
+                break;
+            }
+        }
+        if (!is_reflexive) {
+            printf("false\n");
+            set_dtor(&universe);
+            session_dtor(&session);
+            return 0;
+        }
+        is_reflexive = 0;
+    }
+    printf("true\n");
+    set_dtor(&universe);
+    session_dtor(&session);
     return 0;
 }
 int symmetric_com(int first_line_num, char *lines_array[])
 {
-    printf("symetric\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    int is_inverse = 0;
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = 0; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val))
+            {
+                is_inverse = 1;
+                break;
+            }
+        }
+        if (!is_inverse)
+        {
+            session_dtor(&session);
+            printf("false\n");
+            return 0;
+        }
+        is_inverse = 0;
+    }
+    session_dtor(&session);
+    printf("true\n");
     return 0;
 }
 int antisymmetric_com(int first_line_num, char *lines_array[])
 {
-    printf("antisymmetric\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    int is_inverse = 1;
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = 0; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val) && strcmp(session.pairs[i].right_val, session.pairs[i].left_val) && strcmp(session.pairs[j].right_val, session.pairs[j].left_val))
+            {
+                is_inverse = 0;
+                break;
+            }
+        }
+        if (!is_inverse)
+        {
+            session_dtor(&session);
+            printf("false\n");
+            return 0;
+        }
+        is_inverse = 1;
+    }
+    session_dtor(&session);
+    printf("true\n");
     return 0;
 }
 int transitive_com(int first_line_num, char *lines_array[])
 {
-    printf("transitive\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    int is_identical = 0;
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = 0; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].right_val, session.pairs[j].left_val))
+            {
+                for (int k = 0; k < session.size; k++)
+                {
+                    if (!strcmp(session.pairs[k].left_val, session.pairs[i].left_val) && !strcmp(session.pairs[k].right_val, session.pairs[j].right_val))
+                    {
+                        is_identical = 1;
+                        break;
+                    }
+                }
+                if (!is_identical)
+                {
+                    session_dtor(&session);
+                    printf("false\n");
+                    return 0;
+                }
+                is_identical = 0;
+                break;
+            }
+        }
+    }
+    session_dtor(&session);
+    printf("true\n");
     return 0;
 }
 int function_com(int first_line_num, char *lines_array[])
 {
-    printf("function\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = i + 1; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].left_val))
+            {
+                session_dtor(&session);
+                printf("false");
+                return 0;
+            }
+        }
+    }
+    session_dtor(&session);
+    printf("true");
     return 0;
 }
 int domain_com(int first_line_num, char *lines_array[])
 {
-    printf("domain\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    char **domain_array = malloc(sizeof(char *));
+    int item_count = 0, is_in_arr = 0;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < item_count; j++) {
+            if (!strcmp(session.pairs[i].left_val, domain_array[j])) {
+                is_in_arr = 1;
+                break;
+            }
+        }
+        if (is_in_arr != 1){
+            domain_array = realloc(domain_array, (item_count + 1) * sizeof(char *));
+            domain_array[item_count] = malloc(strlen(session.pairs[i].left_val) + 1);
+            strcpy(domain_array[item_count], session.pairs[i].left_val);
+            item_count ++;
+        }
+        is_in_arr = 0;
+    }
+    set_print_from_array(domain_array, item_count);
+    for (int i = 0; i < item_count; i++) {
+        free(domain_array[i]);
+    }
+    free(domain_array);
     return 0;
 }
 int codomain_com(int first_line_num, char *lines_array[])
 {
-    printf("codomain\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    char **codomain_array = malloc(sizeof(char *));
+    int item_count = 0, is_in_arr = 0;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < item_count; j++) {
+            if (!strcmp(session.pairs[i].right_val, codomain_array[j])) {
+                is_in_arr = 1;
+                break;
+            }
+        }
+        if (is_in_arr != 1){
+            codomain_array = realloc(codomain_array, (item_count + 1) * sizeof(char *));
+            codomain_array[item_count] = malloc(strlen(session.pairs[i].right_val) + 1);
+            strcpy(codomain_array[item_count], session.pairs[i].right_val);
+            item_count ++;
+        }
+        is_in_arr = 0;
+    }
+    set_print_from_array(codomain_array, item_count);
+    for (int i = 0; i < item_count; i++) {
+        free(codomain_array[i]);
+    }
+    free(codomain_array);
     return 0;
 }
-int injective_com(int first_line_num, char *lines_array[])
+int injective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("injective\n");
+    Session session;
+    Set first_set;
+    Set second_set;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[third_line_num - 1], third_line_num);
+    int is_valid_first = 0, is_valid_second = 0, is_repeated_first = 0, is_repeated_second = 0;
+    //validates if size of first_set is smaller or equal to size of second set, because we have to use every element from first_set, but only once
+    if (first_set.size <= second_set.size) {
+        for (int i = 0; i < session.size; i++) {
+            //validates if left values in relation contains only values from first_set
+            for (int j = 0; j < first_set.size; j++) {
+                if (!strcmp(first_set.items[j], session.pairs[i].left_val)) {
+                    is_valid_first = 1;
+                    break;
+                }
+            }
+            if (!is_valid_first) {
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_first = 0;
+            //validates if right values in relation contains only values from second_set
+            for (int k = 0; k < second_set.size; k++) {
+                if (!strcmp(second_set.items[k], session.pairs[i].right_val)) {
+                    is_valid_second = 1;
+                    break;
+                }
+            }
+            if (!is_valid_second) {
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_second = 0;
+        }
+
+
+        //validates if size of first set is equal to size of relation, because we have to use every element in first_set, but only once
+        if (first_set.size == session.size) {
+            //main loop through relation
+            for (int i = 0; i < session.size; i++) {
+                //loop to check if there is every element on left position of every relation used only once
+                for (int j = 0; j < session.size; j++) {
+                    if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
+                        is_repeated_first = 1;
+                        break;
+                    }
+                }
+                if (is_repeated_first) {
+                    session_dtor(&session);
+                    set_dtor(&first_set);
+                    set_dtor(&second_set);
+                    return 0;
+                }
+                is_repeated_first = 0;
+
+                //loop to check if there is element on right position of every relation used only once (it doesn't have to be used every element)
+                for (int k = 0; k < session.size; k++) {
+                    if (!strcmp(session.pairs[k].right_val, session.pairs[i].right_val) && (k != i)) {
+                        is_repeated_second = 1;
+                        break;
+                    }
+                }
+                if (is_repeated_second) {
+                    session_dtor(&session);
+                    set_dtor(&first_set);
+                    set_dtor(&second_set);
+                    return 0;
+                }
+                is_repeated_second = 0;
+            }
+            //if we can iterate through whole relation without error, it is injective -> print of true
+            session_dtor(&session);
+            set_dtor(&first_set);
+            set_dtor(&second_set);
+            return 1;
+        }
+    }
+    session_dtor(&session);
+    set_dtor(&first_set);
+    set_dtor(&second_set);
     return 0;
 }
-int surjective_com(int first_line_num, char *lines_array[])
+int surjective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("surjective\n");
+    Session session;
+    Set first_set;
+    Set second_set;
+    char **surjective_array = malloc(sizeof(char *));
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[third_line_num - 1], third_line_num);
+    int is_valid_first = 0, is_valid_second = 0, is_repeated_first = 0, item_count = 0, is_in_arr = 0;
+    // size of first set has to be bigger or equal than size of second set, because relation has to be function
+    // we are capable to create surjective representation by using only one element from first set and all elements from second set, but this case wouldn't be function
+    if (first_set.size >= second_set.size) {
+        //main loop through relation to check if relation is valid
+        for (int i = 0; i < session.size; i++) {
+            //loop to check if left values from relation are all from first set
+            for (int j = 0; j < first_set.size; j++) {
+                if (!strcmp(first_set.items[j], session.pairs[i].left_val)) {
+                    is_valid_first = 1;
+                    break;
+                }
+            }
+            if (!is_valid_first) {
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_first = 0;
+
+            //loop to check if right values from relation are all from second set
+            for (int k = 0; k < second_set.size; k++) {
+                if (!strcmp(second_set.items[k], session.pairs[i].right_val)) {
+                    is_valid_second = 1;
+                    break;
+                }
+            }
+            if (!is_valid_second) {
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_second = 0;
+        }
+
+        //start of checking if relation is surjective
+        for (int i = 0; i < session.size; i++) {
+            //another loop to check if relation is function, left element from relation cannot be repeated
+            for (int j = 0; j < session.size; j++) {
+                if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
+                    is_repeated_first = 1;
+                    break;
+                }
+            }
+            if (is_repeated_first) {
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_repeated_first = 0;
+
+            //loop to append every character from right value to temporary array, but only once
+            for (int k = 0; k < item_count; k++) {
+                if (!strcmp(surjective_array[k], session.pairs[i].right_val)) {
+                    is_in_arr = 1;
+                    break;
+                }
+            }
+            if (is_in_arr != 1){
+                surjective_array = realloc(surjective_array, (item_count + 1) * sizeof(char *));
+                surjective_array[item_count] = malloc(strlen(session.pairs[i].right_val) + 1);
+                strcpy(surjective_array[item_count], session.pairs[i].right_val);
+                item_count ++;
+            }
+            is_in_arr = 0;
+        }
+        //if length of array is equal to size of second set the relation must be surjective, because every element from secod set has to be used
+        if (item_count == second_set.size){
+            session_dtor(&session);
+            set_dtor(&first_set);
+            set_dtor(&second_set);
+            return 1;
+        }
+    }
+    session_dtor(&session);
+    set_dtor(&first_set);
+    set_dtor(&second_set);
     return 0;
 }
-int bijective_com(int first_line_num, char *lines_array[])
+int bijective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("bijective\n");
+    if (injective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1 && surjective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+        return 1;
+    }
+    else return 0;
     return 0;
 }
