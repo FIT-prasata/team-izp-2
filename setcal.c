@@ -114,9 +114,9 @@ int main(int argc, char const *argv[])
     // if (validate_user_input(argc, argv))
     // {
         char *lines_array[1000];
-        int line_count = process_file("file.txt", lines_array);
-        // printf("%d", argc);
-        // int line_count = process_file(argv[1], lines_array);
+        // int line_count = process_file("file.txt", lines_array);
+        printf("%d", argc);
+        int line_count = process_file(argv[1], lines_array);
         if (validate_lines(lines_array, line_count))
         {
             process_rows(lines_array, line_count);
@@ -740,9 +740,9 @@ int is_empty_com(int first_line_num, char *lines_array[])
     Set set;
     set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
     if (set.size == 0)
-        printf("true");
+        printf("true\n");
     else
-        printf("false");
+        printf("false\n");
     set_dtor(&set);
     return 0;
 }
@@ -1245,13 +1245,13 @@ int function_com(int first_line_num, char *lines_array[])
             if (!strcmp(session.pairs[i].left_val, session.pairs[j].left_val))
             {
                 session_dtor(&session);
-                printf("false");
+                printf("false\n");
                 return 0;
             }
         }
     }
     session_dtor(&session);
-    printf("true");
+    printf("true\n");
     return 0;
 }
 int domain_com(int first_line_num, char *lines_array[])
