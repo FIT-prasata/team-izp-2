@@ -111,16 +111,18 @@ int bijective_com(int first_line_num, int second_line_num, int third_line_num, c
 int main(int argc, char const *argv[])
 {
 
-    if (validate_user_input(argc, argv))
-    {
+    // if (validate_user_input(argc, argv))
+    // {
         char *lines_array[1000];
-        int line_count = process_file(argv[1], lines_array);
+        int line_count = process_file("file.txt", lines_array);
+        // printf("%d", argc);
+        // int line_count = process_file(argv[1], lines_array);
         if (validate_lines(lines_array, line_count))
         {
             process_rows(lines_array, line_count);
             return 0;
         }
-    }
+    // }
     
     
     return 1;
@@ -133,7 +135,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
     int subst_start = 0;  // where should creation of the substring start
     int substs_count = 0; // how many substrings I have (index in result)
     char *substr;
-    char **result = malloc(sizeof(char *));
+    char **result = malloc(sizeof(char **));
     substr = (char *)malloc(1); // dummy malloc
     for (int i = 0; i <= line_length; i++)
     {
@@ -146,7 +148,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
             subst_start = i + 1;
             substs_count++;
-            result = realloc(result, sizeof(char *) * (substs_count + 1)); // increase space of result
+            result = realloc(result, sizeof(char **) * (substs_count + 1)); // increase space of result
         }
     }
     *result_len = substs_count; //withdrawing length of array
@@ -470,9 +472,12 @@ void subval_values_from_universe(char **splitted_line, int num_items, int *is_er
         is_in_uni = 0;
         for (int j = 1; j < universe_size; j++)
         {
+        // printf("%s - %s %d\n", splitted_line[i], universe_array[j], (int)strcmp(splitted_line[i], universe_array[j]));
+
             if (!strcmp(splitted_line[i], universe_array[j]))
             {
                 is_in_uni = 1;
+                break;
             }
         }
         if (!is_in_uni)
@@ -534,15 +539,14 @@ int validate_lines(char *lines_array[], int line_count)
     else
     {
         int universe_size;
-        char *universe_string = malloc(strlen(lines_array[0]) * sizeof(char *));
+        char *universe_string = malloc((strlen(lines_array[0])+1) * sizeof(char *));
         strcpy(universe_string, lines_array[0]);
         char **universe_array = my_split(universe_string, ' ', strlen(universe_string), &universe_size);
-
         // lengt of values in universe
         subval_universe_chars_max_len(universe_array, universe_size, &is_error);
         for (int i = 0; i < line_count; i++)
         {
-            working_string = realloc(working_string, strlen(lines_array[i]) * sizeof(char *));
+            working_string = realloc(working_string, (strlen(lines_array[i])+1) * sizeof(char *));
             strcpy(working_string, lines_array[i]);
 
             if (working_string[0] == 'R')
@@ -623,6 +627,7 @@ int validate_lines(char *lines_array[], int line_count)
         }
         free(universe_array);
     }
+    working_string = NULL;
     free(working_string);
 
     if (is_error)
