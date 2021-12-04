@@ -44,7 +44,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line);
 // creates array of lines from file, returns number of lines
-int process_file(char filename[], char **result);
+int process_file(const char filename[], char **result);
 // TODO
 void process_rows(char *lines_array[], int line_count);
 // TODO
@@ -111,16 +111,18 @@ int bijective_com(int first_line_num, int second_line_num, int third_line_num, c
 int main(int argc, char const *argv[])
 {
 
-    if (validate_user_input(argc, argv))
-    {
+    // if (validate_user_input(argc, argv))
+    // {
         char *lines_array[1000];
+        // int line_count = process_file("file.txt", lines_array);
+        printf("%d", argc);
         int line_count = process_file(argv[1], lines_array);
         if (validate_lines(lines_array, line_count))
         {
             process_rows(lines_array, line_count);
             return 0;
         }
-    }
+    // }
     
     
     return 1;
@@ -133,7 +135,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
     int subst_start = 0;  // where should creation of the substring start
     int substs_count = 0; // how many substrings I have (index in result)
     char *substr;
-    char **result = malloc(sizeof(char *));
+    char **result = malloc(sizeof(char **));
     substr = (char *)malloc(1); // dummy malloc
     for (int i = 0; i <= line_length; i++)
     {
@@ -146,7 +148,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
             strncpy(result[substs_count], substr, (i - subst_start) + 1); // giving right value to result
             subst_start = i + 1;
             substs_count++;
-            result = realloc(result, sizeof(char *) * (substs_count + 1)); // increase space of result
+            result = realloc(result, sizeof(char **) * (substs_count + 1)); // increase space of result
         }
     }
     *result_len = substs_count; //withdrawing length of array
@@ -182,7 +184,7 @@ int readline(FILE *file, char *line)
 }
 
 // creates array of lines from file, returns line count
-int process_file(char filename[], char **result)
+int process_file(const char filename[], char **result)
 {
     FILE *file;
     int line_count;
@@ -192,7 +194,7 @@ int process_file(char filename[], char **result)
         result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
         if (readline(file, result[i]))
         {
-            line_count = i + 1;
+            line_count = i;
             break;
         }
     }
@@ -412,7 +414,7 @@ void subval_char_type(char **splitted_line, int num_items, int *is_error, int li
 {
     for (int i = 1; i < num_items; i++)
     {
-        for (int j = 0; j < strlen(splitted_line[i]); j++)
+        for (int j = 0; j < (int)strlen(splitted_line[i])-1; j++)
         {
             if (!(
                     (splitted_line[i][j] >= 'a' && splitted_line[i][j] <= 'z') ||
@@ -470,15 +472,18 @@ void subval_values_from_universe(char **splitted_line, int num_items, int *is_er
         is_in_uni = 0;
         for (int j = 1; j < universe_size; j++)
         {
+        // printf("%s - %s %d\n", splitted_line[i], universe_array[j], (int)strcmp(splitted_line[i], universe_array[j]));
+
             if (!strcmp(splitted_line[i], universe_array[j]))
             {
                 is_in_uni = 1;
+                break;
             }
         }
         if (!is_in_uni)
         {
             *is_error = 1;
-            fprintf(stderr, "Chyba na radku %d: Prvek %s neni z universe\n", line_num, splitted_line[i]);
+            fprintf(stderr, "Chyba na radku %d: Prvek %s neni z universe, num %d\n", line_num, splitted_line[i], i);
         }
     }
 }
@@ -534,15 +539,14 @@ int validate_lines(char *lines_array[], int line_count)
     else
     {
         int universe_size;
-        char *universe_string = malloc(strlen(lines_array[0]) * sizeof(char *));
+        char *universe_string = malloc((strlen(lines_array[0])+1) * sizeof(char *));
         strcpy(universe_string, lines_array[0]);
         char **universe_array = my_split(universe_string, ' ', strlen(universe_string), &universe_size);
-
         // lengt of values in universe
         subval_universe_chars_max_len(universe_array, universe_size, &is_error);
         for (int i = 0; i < line_count; i++)
         {
-            working_string = realloc(working_string, strlen(lines_array[i]) * sizeof(char *));
+            working_string = realloc(working_string, (strlen(lines_array[i])+1) * sizeof(char *));
             strcpy(working_string, lines_array[i]);
 
             if (working_string[0] == 'R')
@@ -623,6 +627,7 @@ int validate_lines(char *lines_array[], int line_count)
         }
         free(universe_array);
     }
+    working_string = NULL;
     free(working_string);
 
     if (is_error)
@@ -735,9 +740,9 @@ int is_empty_com(int first_line_num, char *lines_array[])
     Set set;
     set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
     if (set.size == 0)
-        printf("true");
+        printf("true\n");
     else
-        printf("false");
+        printf("false\n");
     set_dtor(&set);
     return 0;
 }
@@ -1088,6 +1093,7 @@ void session_ctor_from_line_string(Session *session, char *string, int row)
 }
 void session_ctor(Session *session, Session_pair *pairs, int row, int size)
 {
+    session->row = row;
     for (int i = 0; i < size; i++)
     {
         session_append(session, &(pairs[i]));
@@ -1239,13 +1245,13 @@ int function_com(int first_line_num, char *lines_array[])
             if (!strcmp(session.pairs[i].left_val, session.pairs[j].left_val))
             {
                 session_dtor(&session);
-                printf("false");
+                printf("false\n");
                 return 0;
             }
         }
     }
     session_dtor(&session);
-    printf("true");
+    printf("true\n");
     return 0;
 }
 int domain_com(int first_line_num, char *lines_array[])
