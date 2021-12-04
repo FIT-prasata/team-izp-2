@@ -3,9 +3,18 @@
 #include <string.h>
 #include <stdbool.h>
 
-//_______DEFINITIONS__________________________________________________________________________________
+//_______DEFINITIONS/CONSTANTS__________________________________________________________________________________
 #define DEFAULT_LINE_SIZE 30
-
+const char *BANNED_STRINGS[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
+const int NUM_BANNED_STRINGS = 19;
+const char *VALID_LINE_IDENTIFIERS[4] = {"U", "S", "C", "R"};
+const int NUM_VALID_LINE_IDENTIFIERS = 4;
+const char *SINGULAR_COMMANDS[10] = {"empty", "card", "complement", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain"};
+const int NUM_SINGULAR_COMMANDS = 10;
+const char *BINARY_COMMANDS[6] = {"union", "intersect", "minus", "subseteq", "subset", "equals"};
+const int NUM_BINARY_COMMANDS = 6;
+const char *TERTIARY_COMMANDS[3] = {"injective", "surjective", "bijective"};
+const int NUM_TERTIARY_COMMANDS = 3;
 //------STRUCTS-FOR-SETS------------------------------------------------------------------------------
 typedef struct
 {
@@ -44,6 +53,18 @@ void remove_all_chars(char *str, char c);
 //------VALIDATORS----------------------------------------------------------------------------------------
 // Returns 1 if input is correct, otherwise 0
 int validate_user_input(int argc, char const *argv[]);
+void subval_universe_chars_max_len(char **universe_array, int universe_size, int *is_error);
+int subval_valid_line_identifier(char *identifier, int *is_error, int line_num);
+void subval_banned_strings(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_char_type(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_same_values_set(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_same_values_session(char **splitted_line, int num_items, int *is_error, int line_num);
+void subval_values_from_universe(char **splitted_line, int num_items, int *is_error, char **universe_array, int universe_size, int line_num);
+int subval_get_num_params(char *command);
+int validate_lines(char *lines_array[], int line_count);
+int validate_singular_command(const char *first_type, int first_line_number, char *lines_array[]);
+int validate_binary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *lines_array[]);
+int validate_terciary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *third_type, int third_line_number, char *lines_array[]);
 
 //------SET-HELPERS------
 void set_ctor_from_line_string(Set *set, char *string, int row);
@@ -91,10 +112,14 @@ int main(int argc, char const *argv[])
 {
 
     char *lines_array[1000];
-    char filename[10] = "file.txt";
+    char filename[10] = "val.txt";
     int line_count = process_file(filename, lines_array);
-    process_rows(lines_array, line_count);
-    return 0;
+    if (validate_lines(lines_array, line_count))
+    {
+        process_rows(lines_array, line_count);
+        return 0;
+    }
+    return 1;
 }
 
 //-------UTILS-------------------------------------------------------------------------------------------------
@@ -163,7 +188,7 @@ int process_file(char filename[], char **result)
         result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
         if (readline(file, result[i]))
         {
-            line_count = i+1;
+            line_count = i + 1;
             break;
         }
     }
@@ -333,182 +358,307 @@ int validate_user_input(int argc, char const *argv[])
     fprintf(stderr, "Spatne zadany argument!\n");
     return 0;
 }
-// Validates lines from file
-bool validate_lines(char lines_array[])
+void subval_universe_chars_max_len(char **universe_array, int universe_size, int *is_error)
 {
-    // array of banned strings
-    char *banned_strings[19] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false"};
-    int num_items = 0;
-    // converts line to array
-    char **line_arr = my_split(lines_array, ' ', strlen(lines_array), &num_items);
-    // UNIVERSE AND SET VALIDATIONS
-    if (strcmp(line_arr[0], "U") == 0 || strcmp(line_arr[0], "S") == 0)
+    for (int i = 1; i < universe_size; i++)
     {
-        for (int i = 1; i < num_items; i++)
+        if (strlen(universe_array[i]) > 30)
         {
-            for (int j = 0; j < 19; j++)
+            *is_error = 1;
+            fprintf(stderr, "Chyba na radku 1: Hodnota v universe '%s' je prilis dlouha \n", universe_array[i]);
+        }
+    }
+}
+
+int subval_valid_line_identifier(char *identifier, int *is_error, int line_num)
+{
+    int is_valid = 0;
+    for (int i = 0; i < NUM_VALID_LINE_IDENTIFIERS; i++)
+    {
+        if (!strcmp(identifier, VALID_LINE_IDENTIFIERS[i]))
+        {
+            is_valid = 1;
+        }
+    }
+    if (is_valid)
+    {
+        return 1;
+    }
+    *is_error = 1;
+    fprintf(stderr, "Chyba na radku %d: Neplatna hodnota identifikatoru radku '%s' \n", line_num, identifier);
+    return 0;
+}
+
+void subval_banned_strings(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i++)
+    {
+        for (int j = 0; j < NUM_BANNED_STRINGS; j++)
+        {
+            if (!strcmp(splitted_line[i], BANNED_STRINGS[j]))
             {
-                // comparison with banned strings
-                if (strcmp(line_arr[i], banned_strings[j]) == 0)
-                {
-                    fprintf(stderr, "Prvky se nesmi jmenovat stejne jako prikazy!\n");
-                    return false;
-                }
+                *is_error = 1;
+                fprintf(stderr, "Chyba na radku %d: Bylo pouzito zakazane slovo: '%s' \n", line_num, splitted_line[i]);
             }
-            // char type validation
-            for (int j = 0; j < strlen(line_arr[i]); j++)
+        }
+    }
+}
+
+void subval_char_type(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i++)
+    {
+        for (int j = 0; j < strlen(splitted_line[i]); j++)
+        {
+            if (!(
+                    (splitted_line[i][j] >= 'a' && splitted_line[i][j] <= 'z') ||
+                    (splitted_line[i][j] >= 'A' && splitted_line[i][j] <= 'Z')))
             {
-                if (!((line_arr[i][j] >= 'a' && line_arr[i][j] <= 'z') || (line_arr[i][j] >= 'A' && line_arr[i][j] <= 'Z')))
-                {
-                    fprintf(stderr, "Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy!\n");
-                    return false;
-                }
+                *is_error = 1;
+                fprintf(stderr, "Chyba na radku %d: Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy.\n", line_num);
             }
-            // checks if there are no same values
-            for (int j = 1; j < num_items; j++)
+        }
+    }
+}
+
+void subval_same_values_set(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i++)
+    {
+        for (int j = i + 1; j < num_items; j++)
+        {
+            if (!strcmp(splitted_line[i], splitted_line[j]))
             {
-                if (i != j)
+                *is_error = 1;
+                if (!strcmp(splitted_line[0], "U"))
                 {
-                    if (strcmp(line_arr[i], line_arr[j]) == 0)
-                    {
-                        if (*line_arr[0] == 'U')
-                        {
-                            fprintf(stderr, "Vsechny prvky universa musi byt ruzne!\n");
-                            return false;
-                        }
-                        if (*line_arr[0] == 'S')
-                        {
-                            fprintf(stderr, "Vsechny prvky mnoziny musi byt ruzne!\n");
-                            return false;
-                        }
-                    }
+                    fprintf(stderr, "Chyba na radku %d: Vsechny prvky univerza musi byt ruzne.\n", line_num);
+                }
+                else
+                {
+                    fprintf(stderr, "Chyba na radku %d: Vsechny prvky mnoziny musi byt ruzne.\n", line_num);
                 }
             }
         }
     }
-    // COMMAND VALIDATIONS
-    else if (strcmp(line_arr[0], "C") == 0)
+}
+
+void subval_same_values_session(char **splitted_line, int num_items, int *is_error, int line_num)
+{
+    for (int i = 1; i < num_items; i += 2)
     {
-        // checks if has accurate number of items
-        if (num_items > 4 || num_items < 3)
+        for (int j = i + 2; j < num_items; j += 2)
         {
-            fprintf(stderr, "Spatne zadany prikaz!\n");
-            return false;
-        }
-        // validation of correctly written command
-        bool is_cmd = false;
-        for (int i = 0; i < 17; i++)
-        {
-            if (strcmp(line_arr[1], banned_strings[i]) == 0)
+            if (!(strcmp(splitted_line[i], splitted_line[j])) && !(strcmp(splitted_line[i + 1], splitted_line[j + 1])))
             {
-                is_cmd = true;
+                *is_error = 1;
+                fprintf(stderr, "Chyba na radku %d: Vsechny prvky relace musi byt ruzne.\n", line_num);
+            }
+        }
+    }
+}
+
+void subval_values_from_universe(char **splitted_line, int num_items, int *is_error, char **universe_array, int universe_size, int line_num)
+{
+    int is_in_uni;
+    for (int i = 1; i < num_items; i++)
+    {
+        is_in_uni = 0;
+        for (int j = 1; j < universe_size; j++)
+        {
+            if (!strcmp(splitted_line[i], universe_array[j]))
+            {
+                is_in_uni = 1;
+            }
+        }
+        if (!is_in_uni)
+        {
+            *is_error = 1;
+            fprintf(stderr, "Chyba na radku %d: Prvek %s neni z universe\n", line_num, splitted_line[i]);
+        }
+    }
+}
+int subval_get_num_params(char *command)
+{
+    int num_params = 0;
+    for (int i = 0; i < NUM_SINGULAR_COMMANDS; i++)
+    {
+        if (!strcmp(command, SINGULAR_COMMANDS[i]))
+        {
+            num_params = 1;
+            break;
+        }
+    }
+    if (!num_params)
+    {
+        for (int i = 0; i < NUM_BINARY_COMMANDS; i++)
+        {
+            if (!strcmp(command, BINARY_COMMANDS[i]))
+            {
+                num_params = 2;
                 break;
             }
         }
-        if (is_cmd == false)
+    }
+    if (!num_params)
+    {
+        for (int i = 0; i < NUM_TERTIARY_COMMANDS; i++)
         {
-            fprintf(stderr, "Spatne zadany prikaz!\n");
-            return false;
-        }
-        // one line number is necessary after command
-        if (num_items == 3)
-        {
-            for (int i = 0; i < strlen(line_arr[2]); i++)
+            if (!strcmp(command, TERTIARY_COMMANDS[i]))
             {
-                if (!(line_arr[2][i] >= '0' && line_arr[2][i] <= '9'))
-                {
-                    fprintf(stderr, "Spatne zadany prikaz!\n");
-                    return false;
-                }
-            }
-        }
-        // two line numbers are necessary after command
-        if (num_items == 4)
-        {
-            for (int i = 0; i < strlen(line_arr[2]); i++)
-            {
-                if (!(line_arr[2][i] >= '0' && line_arr[2][i] <= '9'))
-                {
-                    fprintf(stderr, "Spatne zadany prikaz!\n");
-                    return false;
-                }
-            }
-            for (int i = 0; i < strlen(line_arr[3]); i++)
-            {
-                if (!(line_arr[3][i] >= '0' && line_arr[3][i] <= '9'))
-                {
-                    fprintf(stderr, "Spatne zadany prikaz!\n");
-                    return false;
-                }
+                num_params = 3;
+                break;
             }
         }
     }
-    // SESSIONS VALIDATION
-    else if (strcmp(line_arr[0], "R") == 0)
+    return num_params;
+}
+
+// Validates lines from file
+int validate_lines(char *lines_array[], int line_count)
+{
+    int is_error = 0;
+    int num_items;
+    char *working_string;
+    working_string = malloc(sizeof(char *));
+
+    if (lines_array[0][0] != 'U')
     {
-        // parenthesis removal
-        int move = 0;
-        for (int i = 1; i < num_items; i++)
+        is_error = 1;
+        fprintf(stderr, "Prvni radek musi byt universe");
+    }
+    else
+    {
+        int universe_size;
+        char *universe_string = malloc(strlen(lines_array[0]) * sizeof(char *));
+        strcpy(universe_string, lines_array[0]);
+        char **universe_array = my_split(universe_string, ' ', strlen(universe_string), &universe_size);
+
+        // lengt of values in universe
+        subval_universe_chars_max_len(universe_array, universe_size, &is_error);
+        for (int i = 0; i < line_count; i++)
         {
-            for (int j = 0; j < strlen(line_arr[i]); j++)
+            working_string = realloc(working_string, strlen(lines_array[i]) * sizeof(char *));
+            strcpy(working_string, lines_array[i]);
+
+            if (working_string[0] == 'R')
             {
-                if (line_arr[i][j] == ')')
-                {
-                    line_arr[i][j] = '\0';
-                }
-                if (line_arr[i][j] == '(')
-                {
-                    move++;
-                }
-                line_arr[i][j] = line_arr[i][j + move];
+                remove_all_chars(working_string, '(');
+                remove_all_chars(working_string, ')');
             }
-            move = 0;
-        }
-        // check for banned strings
-        for (int i = 1; i < num_items; i++)
-        {
-            for (int j = 0; j < 19; j++)
+
+            char **splitted_line = my_split(working_string, ' ', strlen(working_string), &num_items);
+            if (subval_valid_line_identifier(splitted_line[0], &is_error, i + 1))
             {
-                if (strcmp(line_arr[i], banned_strings[j]) == 0)
+                if (strcmp(splitted_line[0], "C"))
                 {
-                    fprintf(stderr, "Prvky se nesmi jmenovat stejne jako prikazy!\n");
-                    return false;
-                }
-            }
-            // char type validation
-            for (int j = 0; j < strlen(line_arr[i]); j++)
-            {
-                if (!((line_arr[i][j] >= 'a' && line_arr[i][j] <= 'z') || (line_arr[i][j] >= 'A' && line_arr[i][j] <= 'Z')))
-                {
-                    fprintf(stderr, "Prvky musi byt retezce pouze z malych nebo velkych pismen abecedy!\n");
-                    return false;
-                }
-            }
-        }
-        // checks if there are no same pairs
-        for (int i = 1; i < num_items; i += 2)
-        {
-            for (int j = 1; j < num_items; j += 2)
-            {
-                if (i != j)
-                {
-                    if (strcmp(line_arr[i], line_arr[j]) == 0 && strcmp(line_arr[i + 1], line_arr[j + 1]) == 0)
+                    // compares whole line with banned strings
+                    subval_banned_strings(splitted_line, num_items, &is_error, i + 1);
+                    // chechs if all chars are big or small letters
+                    subval_char_type(splitted_line, num_items, &is_error, i + 1);
+                    // checks for duplicates
+                    if (strcmp(splitted_line[0], "R"))
                     {
-                        fprintf(stderr, "Relace nesmi obsahovat vice stejnych dvojic!\n");
-                        return false;
+                        subval_same_values_set(splitted_line, num_items, &is_error, i + 1);
+                    }
+                    else
+                    {
+                        subval_same_values_session(splitted_line, num_items, &is_error, i + 1);
+                    }
+                    // if not universe, checks if all values are from universe
+                    if (strcmp(splitted_line[0], "U"))
+                    {
+                        subval_values_from_universe(splitted_line, num_items, &is_error, universe_array, universe_size, i + 1);
+                    }
+                }
+                else
+                {
+                    // validates valid command input and number of params
+                    int num_params = subval_get_num_params(splitted_line[1]);
+                    if (num_params == 0)
+                    {
+                        is_error = 1;
+                        fprintf(stderr, "Chyba na radku %d: Neznamy prikaz: '%s'", i + 1, splitted_line[1]);
+                    }
+                    else if (num_params == 1)
+                    {
+                        if (num_items != 3)
+                        {
+                            is_error = 1;
+                            fprintf(stderr, "Chyba na radku %d: Nespravny pocet argumentu u prikazu: '%s'", i + 1, splitted_line[1]);
+                        }
+                    }
+                    else if (num_params == 2)
+                    {
+                        if (num_items != 4)
+                        {
+                            is_error = 1;
+                            fprintf(stderr, "Chyba na radku %d: Nespravny pocet argumentu u prikazu: '%s'", i + 1, splitted_line[1]);
+                        }
+                    }
+                    else if (num_params == 3)
+                    {
+                        if (num_items != 5)
+                        {
+                            is_error = 1;
+                            fprintf(stderr, "Chyba na radku %d: Nespravny pocet argumentu u prikazu: '%s'", i + 1, splitted_line[1]);
+                        }
                     }
                 }
             }
+            for (int i = 0; i < num_items; i++)
+            {
+                free(splitted_line[i]);
+            }
+            free(splitted_line);
         }
+        free(universe_string);
+        for (int i = 0; i < universe_size; i++)
+        {
+            free(universe_array[i]);
+        }
+        free(universe_array);
     }
-    // INVALID LINE IDENTIFIER
-    else
+    free(working_string);
+
+    if (is_error)
     {
-        fprintf(stderr, "Spatne zadany identifikator radku!\n");
-        return false;
+        return 0;
     }
-    return true;
+    return 1;
 }
+
+int validate_singular_command(const char *first_type, int first_line_number, char *lines_array[])
+{
+    if (
+        !strcmp(first_type, lines_array[first_line_number - 1]))
+    {
+        return 1;
+    }
+    return 0;
+}
+int validate_binary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, char *lines_array[])
+{
+    if (
+        !(strcmp(first_type, lines_array[first_line_number - 1])) && 
+        !(strcmp(second_type, lines_array[second_line_number - 1])))
+    {
+        return 1;
+    }
+    return 0;
+}
+int validate_tertiary_command(const char *first_type, int first_line_number, const char *second_type, int second_line_number, const char *third_type, int third_line_number, char *lines_array[])
+{
+    if (
+        !(strcmp(first_type, lines_array[first_line_number - 1])) && 
+        !(strcmp(second_type, lines_array[second_line_number - 1])) && 
+        !(strcmp(third_type, lines_array[third_line_number - 1])))
+    {
+        return 1;
+    }
+    return 0;
+}
+
 //------SET-HELPERS------
 void set_ctor_from_line_string(Set *set, char *string, int row)
 {
@@ -790,7 +940,8 @@ int subset_com(int first_line_num, int second_line_num, char *lines_array[])
     set_ctor_from_line_string(&first_set, lines_array[first_line_num - 1], first_line_num);
     set_ctor_from_line_string(&second_set, lines_array[second_line_num - 1], second_line_num);
     int is_identical = 0;
-    if (first_set.size != second_set.size) {
+    if (first_set.size != second_set.size)
+    {
         for (int i = 0; i < first_set.size; i++)
         {
             for (int j = 0; j < second_set.size; j++)
@@ -803,19 +954,20 @@ int subset_com(int first_line_num, int second_line_num, char *lines_array[])
             }
             if (is_identical == 0)
             {
-                printf("false\n"); 
+                printf("false\n");
                 set_dtor(&first_set);
                 set_dtor(&second_set);
                 return 0;
             }
             is_identical = 0;
         }
-        printf("true\n"); 
+        printf("true\n");
         set_dtor(&first_set);
         set_dtor(&second_set);
         return 0;
     }
-    else {
+    else
+    {
         for (int i = 0; i < first_set.size; i++)
         {
             for (int j = 0; j < second_set.size; j++)
@@ -828,14 +980,14 @@ int subset_com(int first_line_num, int second_line_num, char *lines_array[])
             }
             if (is_identical == 0)
             {
-                printf("true\n"); 
+                printf("true\n");
                 set_dtor(&first_set);
                 set_dtor(&second_set);
                 return 0;
             }
             is_identical = 0;
         }
-        printf("false\n"); 
+        printf("false\n");
         set_dtor(&first_set);
         set_dtor(&second_set);
         return 0;
@@ -882,20 +1034,20 @@ int equals_com(int first_line_num, int second_line_num, char *lines_array[])
 }
 
 //------SESSION-HELPERS-------
-void session_init(Session *session, int row) {
+void session_init(Session *session, int row)
+{
     session->row = row;
-    session->size= 0;
-    session->pairs=NULL;
+    session->size = 0;
+    session->pairs = NULL;
 }
-void session_append(Session *session, Session_pair *pair) {
+void session_append(Session *session, Session_pair *pair)
+{
     session->size += 1;
-    session->pairs = realloc(session->pairs, session->size*sizeof(Session_pair));
-    session->pairs[session->size-1].left_val = malloc(strlen(pair->left_val)*sizeof(char *));
-    strcpy(session->pairs[session->size-1].left_val, pair->left_val);
-    session->pairs[session->size-1].right_val = malloc(strlen(pair->right_val)*sizeof(char *));
-    strcpy(session->pairs[session->size-1].right_val, pair->right_val);
-
-
+    session->pairs = realloc(session->pairs, session->size * sizeof(Session_pair));
+    session->pairs[session->size - 1].left_val = malloc(strlen(pair->left_val) * sizeof(char *));
+    strcpy(session->pairs[session->size - 1].left_val, pair->left_val);
+    session->pairs[session->size - 1].right_val = malloc(strlen(pair->right_val) * sizeof(char *));
+    strcpy(session->pairs[session->size - 1].right_val, pair->right_val);
 }
 void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val)
 {
@@ -904,7 +1056,8 @@ void session_pair_ctor(Session_pair *pair, char *left_val, char *right_val)
     pair->left_val = left_val;
     pair->right_val = right_val;
 }
-void session_pair_dtor(Session_pair *pair) {
+void session_pair_dtor(Session_pair *pair)
+{
     free(pair->left_val);
     free(pair->right_val);
 }
@@ -921,23 +1074,23 @@ void session_ctor_from_line_string(Session *session, char *string, int row)
 
     char **splitted_line = my_split(working_string, ' ', strlen(working_string), &items_count);
     Session_pair tmp_pair;
-    for (int i = 1; i < items_count; i+=2)
-    {   
-        session_pair_ctor(&tmp_pair, splitted_line[i], splitted_line[i+1]);
+    for (int i = 1; i < items_count; i += 2)
+    {
+        session_pair_ctor(&tmp_pair, splitted_line[i], splitted_line[i + 1]);
         session_append(session, &tmp_pair);
     }
-    
+
     session_pair_dtor(&tmp_pair);
-    
 }
-void session_ctor(Session *session, Session_pair *pairs, int row, int size) {
+void session_ctor(Session *session, Session_pair *pairs, int row, int size)
+{
     for (int i = 0; i < size; i++)
     {
         session_append(session, &(pairs[i]));
     }
-    
 }
-void session_print(Session session) {
+void session_print(Session session)
+{
     printf("R ");
     for (int i = 0; i < session.size; i++)
     {
@@ -945,7 +1098,8 @@ void session_print(Session session) {
     }
     printf("\n");
 }
-void session_dtor(Session *session) {
+void session_dtor(Session *session)
+{
     for (int i = 0; i < session->size; i++)
     {
         session_pair_dtor(&(session->pairs[i]));
@@ -961,7 +1115,8 @@ int reflexive_com(int first_line_num, char *lines_array[])
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
     set_ctor_from_line_string(&universe, lines_array[0], 1);
     int is_reflexive = 0;
-    for (int i = 0; i < universe.size; i++) {
+
+    for (int i = 0; i < session.size; i++) {
         for (int j = 0; j < session.size; j++) {
             if (!strcmp(universe.items[i], session.pairs[j].left_val) && !strcmp(universe.items[i], session.pairs[j].right_val)) {
                 is_reflexive = 1;
@@ -986,14 +1141,18 @@ int symmetric_com(int first_line_num, char *lines_array[])
     Session session;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
     int is_inverse = 0;
-    for (int i = 0; i < session.size; i++) {
-        for (int j = 0; j < session.size; j++) {
-            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val)) {
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = 0; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val))
+            {
                 is_inverse = 1;
                 break;
             }
         }
-        if (!is_inverse) {
+        if (!is_inverse)
+        {
             session_dtor(&session);
             printf("false\n");
             return 0;
@@ -1009,14 +1168,18 @@ int antisymmetric_com(int first_line_num, char *lines_array[])
     Session session;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
     int is_inverse = 1;
-    for (int i = 0; i < session.size; i++) {
-        for (int j = 0; j < session.size; j++) {
-            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val) && strcmp(session.pairs[i].right_val, session.pairs[i].left_val) && strcmp(session.pairs[j].right_val, session.pairs[j].left_val)) {
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = 0; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val) && !strcmp(session.pairs[i].right_val, session.pairs[j].left_val) && strcmp(session.pairs[i].right_val, session.pairs[i].left_val) && strcmp(session.pairs[j].right_val, session.pairs[j].left_val))
+            {
                 is_inverse = 0;
                 break;
             }
         }
-        if (!is_inverse) {
+        if (!is_inverse)
+        {
             session_dtor(&session);
             printf("false\n");
             return 0;
@@ -1026,23 +1189,28 @@ int antisymmetric_com(int first_line_num, char *lines_array[])
     session_dtor(&session);
     printf("true\n");
     return 0;
-    
 }
 int transitive_com(int first_line_num, char *lines_array[])
 {
     Session session;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
     int is_identical = 0;
-    for (int i = 0; i < session.size; i++) {
-        for (int j = 0; j < session.size; j++) {
-            if (!strcmp(session.pairs[i].right_val, session.pairs[j].left_val)) {
-                for (int k = 0; k < session.size; k++) {
-                    if (!strcmp(session.pairs[k].left_val,session.pairs[i].left_val) && !strcmp(session.pairs[k].right_val, session.pairs[j].right_val)) {
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = 0; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].right_val, session.pairs[j].left_val))
+            {
+                for (int k = 0; k < session.size; k++)
+                {
+                    if (!strcmp(session.pairs[k].left_val, session.pairs[i].left_val) && !strcmp(session.pairs[k].right_val, session.pairs[j].right_val))
+                    {
                         is_identical = 1;
                         break;
                     }
                 }
-                if (!is_identical) {
+                if (!is_identical)
+                {
                     session_dtor(&session);
                     printf("false\n");
                     return 0;
@@ -1060,9 +1228,12 @@ int function_com(int first_line_num, char *lines_array[])
 {
     Session session;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
-    for (int i = 0; i < session.size; i++) {
-        for (int j = i+1; j < session.size; j++) {
-            if (!strcmp(session.pairs[i].left_val, session.pairs[j].left_val)) {
+    for (int i = 0; i < session.size; i++)
+    {
+        for (int j = i + 1; j < session.size; j++)
+        {
+            if (!strcmp(session.pairs[i].left_val, session.pairs[j].left_val))
+            {
                 session_dtor(&session);
                 printf("false");
                 return 0;
