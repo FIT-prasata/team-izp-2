@@ -274,15 +274,24 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
     }
     else if (!strcmp(command_name, "injective"))
     {
-        injective_com(first_line_num, second_line_num, third_line_num, lines_array);
+        if (injective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+            printf("true\n");
+        }
+        else printf("false\n");
     }
     else if (!strcmp(command_name, "surjective"))
     {
-        surjective_com(first_line_num, second_line_num, third_line_num, lines_array);
+        if (surjective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+            printf("true\n");
+        }
+        else printf("false\n");
     }
     else if (!strcmp(command_name, "bijective"))
     {
-        bijective_com(first_line_num, second_line_num, third_line_num, lines_array);
+        if (bijective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+            printf("true\n");
+        }
+        else printf("false\n");
     }
     else
     {
@@ -951,7 +960,6 @@ int reflexive_com(int first_line_num, char *lines_array[])
     Set universe;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
     set_ctor_from_line_string(&universe, lines_array[0], 1);
-    char **ref_array = malloc(session.size * sizeof(char *));
     int is_reflexive = 0;
     for (int i = 0; i < universe.size; i++) {
         for (int j = 0; j < session.size; j++) {
@@ -1130,8 +1138,10 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
     set_ctor_from_line_string(&first_set, lines_array[second_line_num - 1], second_line_num);
     set_ctor_from_line_string(&second_set, lines_array[third_line_num - 1], third_line_num);
     int is_valid_first = 0, is_valid_second = 0, is_repeated_first = 0, is_repeated_second = 0;
+    //validates if size of first_set is smaller or equal to size of second set, because we have to use every element from first_set, but only once
     if (first_set.size <= second_set.size) {
         for (int i = 0; i < session.size; i++) {
+            //validates if left values in relation contains only values from first_set
             for (int j = 0; j < first_set.size; j++) {
                 if (!strcmp(first_set.items[j], session.pairs[i].left_val)) {
                     is_valid_first = 1;
@@ -1139,13 +1149,13 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
                 }
             }
             if (!is_valid_first) {
-                printf("false\n");
                 session_dtor(&session);
                 set_dtor(&first_set);
                 set_dtor(&second_set);
                 return 0;
             }
             is_valid_first = 0;
+            //validates if right values in relation contains only values from second_set
             for (int k = 0; k < second_set.size; k++) {
                 if (!strcmp(second_set.items[k], session.pairs[i].right_val)) {
                     is_valid_second = 1;
@@ -1153,7 +1163,6 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
                 }
             }
             if (!is_valid_second) {
-                printf("false\n");
                 session_dtor(&session);
                 set_dtor(&first_set);
                 set_dtor(&second_set);
@@ -1161,8 +1170,13 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
             }
             is_valid_second = 0;
         }
+
+
+        //validates if size of first set is equal to size of relation, because we have to use every element in first_set, but only once
         if (first_set.size == session.size) {
+            //main loop through relation
             for (int i = 0; i < session.size; i++) {
+                //loop to check if there is every element on left position of every relation used only once
                 for (int j = 0; j < session.size; j++) {
                     if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
                         is_repeated_first = 1;
@@ -1170,13 +1184,14 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
                     }
                 }
                 if (is_repeated_first) {
-                    printf("false\n");
                     session_dtor(&session);
                     set_dtor(&first_set);
                     set_dtor(&second_set);
                     return 0;
                 }
                 is_repeated_first = 0;
+
+                //loop to check if there is element on right position of every relation used only once (it doesn't have to be used every element)
                 for (int k = 0; k < session.size; k++) {
                     if (!strcmp(session.pairs[k].right_val, session.pairs[i].right_val) && (k != i)) {
                         is_repeated_second = 1;
@@ -1184,7 +1199,6 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
                     }
                 }
                 if (is_repeated_second) {
-                    printf("false\n");
                     session_dtor(&session);
                     set_dtor(&first_set);
                     set_dtor(&second_set);
@@ -1192,21 +1206,13 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
                 }
                 is_repeated_second = 0;
             }
-            printf("true\n");
+            //if we can iterate through whole relation without error, it is injective -> print of true
             session_dtor(&session);
             set_dtor(&first_set);
             set_dtor(&second_set);
-            return 0;
-        }
-        else {
-            printf("false\n");
-            session_dtor(&session);
-            set_dtor(&first_set);
-            set_dtor(&second_set);
-            return 0;
+            return 1;
         }
     }
-    else printf("false\n");
     session_dtor(&session);
     set_dtor(&first_set);
     set_dtor(&second_set);
@@ -1222,8 +1228,12 @@ int surjective_com(int first_line_num, int second_line_num, int third_line_num, 
     set_ctor_from_line_string(&first_set, lines_array[second_line_num - 1], second_line_num);
     set_ctor_from_line_string(&second_set, lines_array[third_line_num - 1], third_line_num);
     int is_valid_first = 0, is_valid_second = 0, is_repeated_first = 0, item_count = 0, is_in_arr = 0;
+    // size of first set has to be bigger or equal than size of second set, because relation has to be function
+    // we are capable to create surjective representation by using only one element from first set and all elements from second set, but this case wouldn't be function
     if (first_set.size >= second_set.size) {
+        //main loop through relation to check if relation is valid
         for (int i = 0; i < session.size; i++) {
+            //loop to check if left values from relation are all from first set
             for (int j = 0; j < first_set.size; j++) {
                 if (!strcmp(first_set.items[j], session.pairs[i].left_val)) {
                     is_valid_first = 1;
@@ -1231,13 +1241,14 @@ int surjective_com(int first_line_num, int second_line_num, int third_line_num, 
                 }
             }
             if (!is_valid_first) {
-                printf("false\n");
                 session_dtor(&session);
                 set_dtor(&first_set);
                 set_dtor(&second_set);
                 return 0;
             }
             is_valid_first = 0;
+
+            //loop to check if right values from relation are all from second set
             for (int k = 0; k < second_set.size; k++) {
                 if (!strcmp(second_set.items[k], session.pairs[i].right_val)) {
                     is_valid_second = 1;
@@ -1245,7 +1256,6 @@ int surjective_com(int first_line_num, int second_line_num, int third_line_num, 
                 }
             }
             if (!is_valid_second) {
-                printf("false\n");
                 session_dtor(&session);
                 set_dtor(&first_set);
                 set_dtor(&second_set);
@@ -1253,60 +1263,47 @@ int surjective_com(int first_line_num, int second_line_num, int third_line_num, 
             }
             is_valid_second = 0;
         }
-        if (first_set.size == session.size) {
-            for (int i = 0; i < session.size; i++) {
-                for (int j = 0; j < session.size; j++) {
-                    if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
-                        is_repeated_first = 1;
-                        break;
-                    }
+
+        //start of checking if relation is surjective
+        for (int i = 0; i < session.size; i++) {
+            //another loop to check if relation is function, left element from relation cannot be repeated
+            for (int j = 0; j < session.size; j++) {
+                if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
+                    is_repeated_first = 1;
+                    break;
                 }
-                if (is_repeated_first) {
-                    printf("false\n");
-                    session_dtor(&session);
-                    set_dtor(&first_set);
-                    set_dtor(&second_set);
-                    return 0;
-                }
-                is_repeated_first = 0;
-                for (int k = 0; k < item_count; k++) {
-                    if (!strcmp(surjective_array[k], session.pairs[i].right_val)) {
-                        is_in_arr = 1;
-                        break;
-                    }
-                }
-                if (is_in_arr != 1){
-                    surjective_array = realloc(surjective_array, (item_count + 1) * sizeof(char *));
-                    surjective_array[item_count] = malloc(strlen(session.pairs[i].right_val) + 1);
-                    strcpy(surjective_array[item_count], session.pairs[i].right_val);
-                    item_count ++;
-                }
-                is_in_arr = 0;
             }
-            if (item_count == second_set.size){
-                printf("true\n");
+            if (is_repeated_first) {
                 session_dtor(&session);
                 set_dtor(&first_set);
                 set_dtor(&second_set);
                 return 0;
             }
-            else {
-                printf("false\n");
-                session_dtor(&session);
-                set_dtor(&first_set);
-                set_dtor(&second_set);
-                return 0;
+            is_repeated_first = 0;
+
+            //loop to append every character from right value to temporary array, but only once
+            for (int k = 0; k < item_count; k++) {
+                if (!strcmp(surjective_array[k], session.pairs[i].right_val)) {
+                    is_in_arr = 1;
+                    break;
+                }
             }
+            if (is_in_arr != 1){
+                surjective_array = realloc(surjective_array, (item_count + 1) * sizeof(char *));
+                surjective_array[item_count] = malloc(strlen(session.pairs[i].right_val) + 1);
+                strcpy(surjective_array[item_count], session.pairs[i].right_val);
+                item_count ++;
+            }
+            is_in_arr = 0;
         }
-        else {
-            printf("false\n");
+        //if length of array is equal to size of second set the relation must be surjective, because every element from secod set has to be used
+        if (item_count == second_set.size){
             session_dtor(&session);
             set_dtor(&first_set);
             set_dtor(&second_set);
-            return 0;
+            return 1;
         }
     }
-    else printf("false\n");
     session_dtor(&session);
     set_dtor(&first_set);
     set_dtor(&second_set);
@@ -1314,6 +1311,9 @@ int surjective_com(int first_line_num, int second_line_num, int third_line_num, 
 }
 int bijective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("bijective");
+    if (injective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1 && surjective_com(first_line_num, second_line_num, third_line_num, lines_array) == 1){
+        return 1;
+    }
+    else return 0;
     return 0;
 }
