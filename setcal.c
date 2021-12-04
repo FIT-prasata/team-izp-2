@@ -111,14 +111,18 @@ int bijective_com(int first_line_num, int second_line_num, int third_line_num, c
 int main(int argc, char const *argv[])
 {
 
-    char *lines_array[1000];
-    char filename[10] = "val.txt";
-    int line_count = process_file(filename, lines_array);
-    if (validate_lines(lines_array, line_count))
+    if (validate_user_input(argc, argv))
     {
-        process_rows(lines_array, line_count);
-        return 0;
+        char *lines_array[1000];
+        int line_count = process_file(argv[1], lines_array);
+        if (validate_lines(lines_array, line_count))
+        {
+            process_rows(lines_array, line_count);
+            return 0;
+        }
     }
+    
+    
     return 1;
 }
 
