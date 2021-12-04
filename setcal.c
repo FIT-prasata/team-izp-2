@@ -44,7 +44,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line);
 // creates array of lines from file, returns number of lines
-int process_file(const char filename[], char **result);
+int process_file(const char filename[], char **lines_array);
 // TODO
 void process_rows(char *lines_array[], int line_count);
 // TODO
@@ -111,18 +111,22 @@ int bijective_com(int first_line_num, int second_line_num, int third_line_num, c
 int main(int argc, char const *argv[])
 {
 
-    // if (validate_user_input(argc, argv))
-    // {
+    if (validate_user_input(argc, argv))
+    {
         char *lines_array[1000];
         // int line_count = process_file("file.txt", lines_array);
-        printf("%d", argc);
         int line_count = process_file(argv[1], lines_array);
         if (validate_lines(lines_array, line_count))
         {
             process_rows(lines_array, line_count);
+            for (int i = 0; i < line_count; i++)
+            {
+                free(lines_array[i]);
+            }
+            
             return 0;
         }
-    // }
+    }
     
     
     return 1;
@@ -184,20 +188,22 @@ int readline(FILE *file, char *line)
 }
 
 // creates array of lines from file, returns line count
-int process_file(const char filename[], char **result)
+int process_file(const char filename[], char **lines_array)
 {
     FILE *file;
     int line_count;
     file = fopen(filename, "r");
     for (int i = 0; i < 1000; i++)
     {
-        result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
-        if (readline(file, result[i]))
+        lines_array[i] = (char *)malloc(DEFAULT_LINE_SIZE);
+        if (readline(file, lines_array[i]))
         {
             line_count = i;
             break;
         }
     }
+
+    fclose(file);
     return line_count;
 }
 void process_rows(char *lines_array[], int line_count)
@@ -472,7 +478,7 @@ void subval_values_from_universe(char **splitted_line, int num_items, int *is_er
         is_in_uni = 0;
         for (int j = 1; j < universe_size; j++)
         {
-        // printf("%s - %s %d\n", splitted_line[i], universe_array[j], (int)strcmp(splitted_line[i], universe_array[j]));
+        printf("%s - %s\n",universe_array[j], splitted_line[i] );
 
             if (!strcmp(splitted_line[i], universe_array[j]))
             {
@@ -573,11 +579,12 @@ int validate_lines(char *lines_array[], int line_count)
                     {
                         subval_same_values_session(splitted_line, num_items, &is_error, i + 1);
                     }
+                    // TEMPORARLY DISABLED DUE TO UNFIXABLE BUG ON MERLIN
                     // if not universe, checks if all values are from universe
-                    if (strcmp(splitted_line[0], "U"))
-                    {
-                        subval_values_from_universe(splitted_line, num_items, &is_error, universe_array, universe_size, i + 1);
-                    }
+                    // if (strcmp(splitted_line[0], "U"))
+                    // {
+                    //     subval_values_from_universe(splitted_line, num_items, &is_error, universe_array, universe_size, i + 1);
+                    // }
                 }
                 else
                 {
