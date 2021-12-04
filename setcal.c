@@ -14,13 +14,6 @@ typedef struct
     char **items;
 } Set;
 
-//struct for Array of Sets
-typedef struct
-{
-    int len;
-    Set *data;
-} SetArray;
-
 //------STRUCRS-FOR-SESSIONS-----------------------------------------------------------------------------
 typedef struct
 {
@@ -46,7 +39,7 @@ int process_file(char filename[], char **result);
 // TODO
 void process_rows(char *lines_array[], int line_count);
 // TODO
-void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num);
+void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num, int third_line_num);
 void remove_all_chars(char *str, char c);
 //------VALIDATORS----------------------------------------------------------------------------------------
 // Returns 1 if input is correct, otherwise 0
@@ -57,10 +50,7 @@ void set_ctor_from_line_string(Set *set, char *string, int row);
 void set_ctor(Set *set, char **items, int row, int items_len);
 void set_print_from_array(char **items, int items_count);
 void set_dtor(Set *set);
-void setarray_ctor(SetArray *setar);
-void *setarray_inc(SetArray *setar);
 void *set_copy(Set *src, Set *dst);
-void *set_array_append(SetArray *setar, Set *s);
 
 //------SET-COMMANDS------
 int is_empty_com(int first_line_num, char *lines_array[]);
@@ -91,9 +81,9 @@ int transitive_com(int first_line_num, char *lines_array[]);
 int function_com(int first_line_num, char *lines_array[]);
 int domain_com(int first_line_num, char *lines_array[]);
 int codomain_com(int first_line_num, char *lines_array[]);
-int injective_com(int first_line_num, char *lines_array[]);
-int surjective_com(int first_line_num, char *lines_array[]);
-int bijective_com(int first_line_num, char *lines_array[]);
+int injective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[]);
+int surjective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[]);
+int bijective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[]);
 
 //_______________MAIN_CODE____________________________________________________________________________________
 
@@ -134,6 +124,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
     free(substr);
     return result;
 }
+
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line)
 {
@@ -178,7 +169,6 @@ int process_file(char filename[], char **result)
     }
     return line_count;
 }
-
 void process_rows(char *lines_array[], int line_count)
 {
     for (int i = 0; i < line_count; i++)
@@ -187,10 +177,18 @@ void process_rows(char *lines_array[], int line_count)
         {
             int items_len = 0;
             char **output_com = my_split(lines_array[i], ' ', strlen(lines_array[i]), &items_len);
-            for (int i = 0; i < items_len; i++)
-                if (items_len == 3)
-                    output_com[3] = "_";
-            process_operation(output_com[1], lines_array, atoi(output_com[2]), atoi(output_com[3]));
+            output_com = realloc(output_com, 5 * sizeof(char *));
+            if (items_len == 3){
+                output_com[3] = malloc(sizeof(char *));
+                output_com[3] = "_";
+                output_com[4] = malloc(sizeof(char *));
+                output_com[4] = "_";
+            }
+            else if (items_len == 4){
+                output_com[4] = malloc(sizeof(char *));
+                output_com[4] = "_";
+            }
+            process_operation(output_com[1], lines_array, atoi(output_com[2]), atoi(output_com[3]), atoi(output_com[4]));
 
             for (int i = 0; i < items_len; i++)
             {
@@ -206,7 +204,7 @@ void process_rows(char *lines_array[], int line_count)
 }
 
 // execute proper function when line contains command
-void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num)
+void process_operation(char command_name[], char *lines_array[], int first_line_num, int second_line_num, int third_line_num)
 {
     //SETS
     if (!strcmp(command_name, "empty"))
@@ -276,15 +274,15 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
     }
     else if (!strcmp(command_name, "injective"))
     {
-        injective_com(first_line_num, lines_array);
+        injective_com(first_line_num, second_line_num, third_line_num, lines_array);
     }
     else if (!strcmp(command_name, "surjective"))
     {
-        surjective_com(first_line_num, lines_array);
+        surjective_com(first_line_num, second_line_num, third_line_num, lines_array);
     }
     else if (!strcmp(command_name, "bijective"))
     {
-        bijective_com(first_line_num, lines_array);
+        bijective_com(first_line_num, second_line_num, third_line_num, lines_array);
     }
     else
     {
@@ -522,7 +520,6 @@ void set_ctor_from_line_string(Set *set, char *string, int row)
     }
     free(splitted_line);
 }
-
 void set_ctor(Set *set, char **items, int row, int items_len)
 {
     set->row = row;
@@ -534,7 +531,6 @@ void set_ctor(Set *set, char **items, int row, int items_len)
         set->size = i + 1;
     }
 }
-
 void set_print_from_array(char **items, int items_count)
 {
     printf("S ");
@@ -553,7 +549,6 @@ void set_print_from_array(char **items, int items_count)
     else
         printf("{}\n");
 }
-
 void set_dtor(Set *set)
 {
     set->row = 0;
@@ -565,34 +560,10 @@ void set_dtor(Set *set)
     set->items = NULL;
     set->size = 0;
 }
-
-void setarray_ctor(SetArray *setar)
-{
-    setar->len = 0;
-    setar->data = NULL;
-}
-
-void *setarray_inc(SetArray *setar)
-{
-    void *p = realloc(setar->data, (setar->len + 1) * sizeof(Set));
-    if (p == NULL)
-        return NULL;
-    setar->len++;
-    return setar->data = p;
-}
-
 void *set_copy(Set *src, Set *dst)
 {
     set_ctor(dst, src->items, src->row, src->size);
     return dst;
-}
-
-void *set_array_append(SetArray *setar, Set *s)
-{
-    if (setarray_inc(setar))
-        return set_copy(s, &setar->data[setar->len - 1]); //musím použít jinou fci než set_ctor, protože ta je přizpůsobená na to, aby to předělala z toho stringu (prakticky jen trochu upravím ten creator, ale se správnýma indexama)
-    else
-        return NULL;
 }
 
 //------SET-COMMANDS------
@@ -609,10 +580,10 @@ int is_empty_com(int first_line_num, char *lines_array[])
 }
 int card_com(int first_line_num, char *lines_array[])
 {
-    Set s;
-    set_ctor_from_line_string(&s, lines_array[first_line_num - 1], first_line_num);
-    printf("%d\n", s.size);
-    set_dtor(&s);
+    Set set;
+    set_ctor_from_line_string(&set, lines_array[first_line_num - 1], first_line_num);
+    printf("%d\n", set.size);
+    set_dtor(&set);
     return 0;
 }
 int complement_com(int first_line_num, char *lines_array[])
@@ -977,29 +948,29 @@ void session_dtor(Session *session) {
 int reflexive_com(int first_line_num, char *lines_array[])
 {
     Session session;
+    Set universe;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&universe, lines_array[0], 1);
     char **ref_array = malloc(session.size * sizeof(char *));
-    int is_identical = 0;
-    /*
-    for (int i = 0; i < session.size; i++) {
+    int is_reflexive = 0;
+    for (int i = 0; i < universe.size; i++) {
         for (int j = 0; j < session.size; j++) {
-            if (is_identical == 1) {
-                i++;
-                is_identical = 0;
-            }
-
-            if (!strcmp(session.pairs[i].left_val, session.pairs[j].right_val)) {
-                if (!strcmp(session.pairs[j].left_val, session.pairs[j].right_val)) {
-                    is_identical = 1;
-                    printf("jo");
-                }
-            }
-            if (is_identical==1) {
+            if (!strcmp(universe.items[i], session.pairs[j].left_val) && !strcmp(universe.items[i], session.pairs[j].right_val)) {
+                is_reflexive = 1;
                 break;
             }
         }
+        if (!is_reflexive) {
+            printf("false\n");
+            set_dtor(&universe);
+            session_dtor(&session);
+            return 0;
+        }
+        is_reflexive = 0;
     }
-    */
+    printf("true\n");
+    set_dtor(&universe);
+    session_dtor(&session);
     return 0;
 }
 int symmetric_com(int first_line_num, char *lines_array[])
@@ -1016,13 +987,13 @@ int symmetric_com(int first_line_num, char *lines_array[])
         }
         if (!is_inverse) {
             session_dtor(&session);
-            printf("false");
+            printf("false\n");
             return 0;
         }
         is_inverse = 0;
     }
     session_dtor(&session);
-    printf("true");
+    printf("true\n");
     return 0;
 }
 int antisymmetric_com(int first_line_num, char *lines_array[])
@@ -1039,13 +1010,13 @@ int antisymmetric_com(int first_line_num, char *lines_array[])
         }
         if (!is_inverse) {
             session_dtor(&session);
-            printf("false");
+            printf("false\n");
             return 0;
         }
         is_inverse = 1;
     }
     session_dtor(&session);
-    printf("true");
+    printf("true\n");
     return 0;
     
 }
@@ -1065,7 +1036,7 @@ int transitive_com(int first_line_num, char *lines_array[])
                 }
                 if (!is_identical) {
                     session_dtor(&session);
-                    printf("false");
+                    printf("false\n");
                     return 0;
                 }
                 is_identical = 0;
@@ -1074,7 +1045,7 @@ int transitive_com(int first_line_num, char *lines_array[])
         }
     }
     session_dtor(&session);
-    printf("true");
+    printf("true\n");
     return 0;
 }
 int function_com(int first_line_num, char *lines_array[])
@@ -1096,40 +1067,253 @@ int function_com(int first_line_num, char *lines_array[])
 }
 int domain_com(int first_line_num, char *lines_array[])
 {
-    /*
     Session session;
     session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
-    char **domain_array = malloc(session.size * sizeof(char *));
-    int item_count = 0;
+    char **domain_array = malloc(sizeof(char *));
+    int item_count = 0, is_in_arr = 0;
     for (int i = 0; i < session.size; i++) {
-        for (int j = i+1; j < session.size; j++) {
-            if (strcmp(session.pairs[i].left_val, session.pairs[j].left_val)) {
-                domain_array = realloc(domain_array, (item_count + 1) * sizeof(char *));
-                domain_array = malloc(strlen(session.pairs[j].left_val + 1) * sizeof(char *));
-                strcpy(domain_array[item_count], session.pairs[j].left_val);
-                item_count ++;
+        for (int j = 0; j < item_count; j++) {
+            if (!strcmp(session.pairs[i].left_val, domain_array[j])) {
+                is_in_arr = 1;
+                break;
             }
         }
+        if (is_in_arr != 1){
+            domain_array = realloc(domain_array, (item_count + 1) * sizeof(char *));
+            domain_array[item_count] = malloc(strlen(session.pairs[i].left_val) + 1);
+            strcpy(domain_array[item_count], session.pairs[i].left_val);
+            item_count ++;
+        }
+        is_in_arr = 0;
     }
-    return 0; */
+    set_print_from_array(domain_array, item_count);
+    for (int i = 0; i < item_count; i++) {
+        free(domain_array[i]);
+    }
+    free(domain_array);
+    return 0;
 }
 int codomain_com(int first_line_num, char *lines_array[])
 {
-    printf("codomain\n");
+    Session session;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    char **codomain_array = malloc(sizeof(char *));
+    int item_count = 0, is_in_arr = 0;
+    for (int i = 0; i < session.size; i++) {
+        for (int j = 0; j < item_count; j++) {
+            if (!strcmp(session.pairs[i].right_val, codomain_array[j])) {
+                is_in_arr = 1;
+                break;
+            }
+        }
+        if (is_in_arr != 1){
+            codomain_array = realloc(codomain_array, (item_count + 1) * sizeof(char *));
+            codomain_array[item_count] = malloc(strlen(session.pairs[i].right_val) + 1);
+            strcpy(codomain_array[item_count], session.pairs[i].right_val);
+            item_count ++;
+        }
+        is_in_arr = 0;
+    }
+    set_print_from_array(codomain_array, item_count);
+    for (int i = 0; i < item_count; i++) {
+        free(codomain_array[i]);
+    }
+    free(codomain_array);
     return 0;
 }
-int injective_com(int first_line_num, char *lines_array[])
+int injective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("injective\n");
+    Session session;
+    Set first_set;
+    Set second_set;
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[third_line_num - 1], third_line_num);
+    int is_valid_first = 0, is_valid_second = 0, is_repeated_first = 0, is_repeated_second = 0;
+    if (first_set.size <= second_set.size) {
+        for (int i = 0; i < session.size; i++) {
+            for (int j = 0; j < first_set.size; j++) {
+                if (!strcmp(first_set.items[j], session.pairs[i].left_val)) {
+                    is_valid_first = 1;
+                    break;
+                }
+            }
+            if (!is_valid_first) {
+                printf("false\n");
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_first = 0;
+            for (int k = 0; k < second_set.size; k++) {
+                if (!strcmp(second_set.items[k], session.pairs[i].right_val)) {
+                    is_valid_second = 1;
+                    break;
+                }
+            }
+            if (!is_valid_second) {
+                printf("false\n");
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_second = 0;
+        }
+        if (first_set.size == session.size) {
+            for (int i = 0; i < session.size; i++) {
+                for (int j = 0; j < session.size; j++) {
+                    if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
+                        is_repeated_first = 1;
+                        break;
+                    }
+                }
+                if (is_repeated_first) {
+                    printf("false\n");
+                    session_dtor(&session);
+                    set_dtor(&first_set);
+                    set_dtor(&second_set);
+                    return 0;
+                }
+                is_repeated_first = 0;
+                for (int k = 0; k < session.size; k++) {
+                    if (!strcmp(session.pairs[k].right_val, session.pairs[i].right_val) && (k != i)) {
+                        is_repeated_second = 1;
+                        break;
+                    }
+                }
+                if (is_repeated_second) {
+                    printf("false\n");
+                    session_dtor(&session);
+                    set_dtor(&first_set);
+                    set_dtor(&second_set);
+                    return 0;
+                }
+                is_repeated_second = 0;
+            }
+            printf("true\n");
+            session_dtor(&session);
+            set_dtor(&first_set);
+            set_dtor(&second_set);
+            return 0;
+        }
+        else {
+            printf("false\n");
+            session_dtor(&session);
+            set_dtor(&first_set);
+            set_dtor(&second_set);
+            return 0;
+        }
+    }
+    else printf("false\n");
+    session_dtor(&session);
+    set_dtor(&first_set);
+    set_dtor(&second_set);
     return 0;
 }
-int surjective_com(int first_line_num, char *lines_array[])
+int surjective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("surjective\n");
+    Session session;
+    Set first_set;
+    Set second_set;
+    char **surjective_array = malloc(sizeof(char *));
+    session_ctor_from_line_string(&session, lines_array[first_line_num - 1], first_line_num);
+    set_ctor_from_line_string(&first_set, lines_array[second_line_num - 1], second_line_num);
+    set_ctor_from_line_string(&second_set, lines_array[third_line_num - 1], third_line_num);
+    int is_valid_first = 0, is_valid_second = 0, is_repeated_first = 0, item_count = 0, is_in_arr = 0;
+    if (first_set.size >= second_set.size) {
+        for (int i = 0; i < session.size; i++) {
+            for (int j = 0; j < first_set.size; j++) {
+                if (!strcmp(first_set.items[j], session.pairs[i].left_val)) {
+                    is_valid_first = 1;
+                    break;
+                }
+            }
+            if (!is_valid_first) {
+                printf("false\n");
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_first = 0;
+            for (int k = 0; k < second_set.size; k++) {
+                if (!strcmp(second_set.items[k], session.pairs[i].right_val)) {
+                    is_valid_second = 1;
+                    break;
+                }
+            }
+            if (!is_valid_second) {
+                printf("false\n");
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            is_valid_second = 0;
+        }
+        if (first_set.size == session.size) {
+            for (int i = 0; i < session.size; i++) {
+                for (int j = 0; j < session.size; j++) {
+                    if (!strcmp(session.pairs[j].left_val, session.pairs[i].left_val) && (j != i)) {
+                        is_repeated_first = 1;
+                        break;
+                    }
+                }
+                if (is_repeated_first) {
+                    printf("false\n");
+                    session_dtor(&session);
+                    set_dtor(&first_set);
+                    set_dtor(&second_set);
+                    return 0;
+                }
+                is_repeated_first = 0;
+                for (int k = 0; k < item_count; k++) {
+                    if (!strcmp(surjective_array[k], session.pairs[i].right_val)) {
+                        is_in_arr = 1;
+                        break;
+                    }
+                }
+                if (is_in_arr != 1){
+                    surjective_array = realloc(surjective_array, (item_count + 1) * sizeof(char *));
+                    surjective_array[item_count] = malloc(strlen(session.pairs[i].right_val) + 1);
+                    strcpy(surjective_array[item_count], session.pairs[i].right_val);
+                    item_count ++;
+                }
+                is_in_arr = 0;
+            }
+            if (item_count == second_set.size){
+                printf("true\n");
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+            else {
+                printf("false\n");
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
+            }
+        }
+        else {
+            printf("false\n");
+            session_dtor(&session);
+            set_dtor(&first_set);
+            set_dtor(&second_set);
+            return 0;
+        }
+    }
+    else printf("false\n");
+    session_dtor(&session);
+    set_dtor(&first_set);
+    set_dtor(&second_set);
     return 0;
 }
-int bijective_com(int first_line_num, char *lines_array[])
+int bijective_com(int first_line_num, int second_line_num, int third_line_num, char *lines_array[])
 {
-    printf("bijective\n");
+    printf("bijective");
     return 0;
 }
