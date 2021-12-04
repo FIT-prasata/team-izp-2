@@ -44,7 +44,7 @@ char **my_split(char string[], char separator, int line_length, int *result_len)
 // returns 1 if is end of file, else returns 0
 int readline(FILE *file, char *line);
 // creates array of lines from file, returns number of lines
-int process_file(char filename[], char **result);
+int process_file(const char filename[], char **result);
 // TODO
 void process_rows(char *lines_array[], int line_count);
 // TODO
@@ -182,7 +182,7 @@ int readline(FILE *file, char *line)
 }
 
 // creates array of lines from file, returns line count
-int process_file(char filename[], char **result)
+int process_file(const char filename[], char **result)
 {
     FILE *file;
     int line_count;
@@ -192,7 +192,7 @@ int process_file(char filename[], char **result)
         result[i] = (char *)malloc(DEFAULT_LINE_SIZE);
         if (readline(file, result[i]))
         {
-            line_count = i + 1;
+            line_count = i;
             break;
         }
     }
@@ -412,7 +412,7 @@ void subval_char_type(char **splitted_line, int num_items, int *is_error, int li
 {
     for (int i = 1; i < num_items; i++)
     {
-        for (int j = 0; j < strlen(splitted_line[i]); j++)
+        for (int j = 0; j < (int)strlen(splitted_line[i])-1; j++)
         {
             if (!(
                     (splitted_line[i][j] >= 'a' && splitted_line[i][j] <= 'z') ||
@@ -478,7 +478,7 @@ void subval_values_from_universe(char **splitted_line, int num_items, int *is_er
         if (!is_in_uni)
         {
             *is_error = 1;
-            fprintf(stderr, "Chyba na radku %d: Prvek %s neni z universe\n", line_num, splitted_line[i]);
+            fprintf(stderr, "Chyba na radku %d: Prvek %s neni z universe, num %d\n", line_num, splitted_line[i], i);
         }
     }
 }
@@ -1088,6 +1088,7 @@ void session_ctor_from_line_string(Session *session, char *string, int row)
 }
 void session_ctor(Session *session, Session_pair *pairs, int row, int size)
 {
+    session->row = row;
     for (int i = 0; i < size; i++)
     {
         session_append(session, &(pairs[i]));
