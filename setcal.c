@@ -3,6 +3,9 @@
 #include <string.h>
 #include <stdbool.h>
 
+//FINAL VERSION
+//Link to github repository - https://github.com/marekprochazka/izp-projekt-2-2021
+
 //_______DEFINITIONS/CONSTANTS__________________________________________________________________________________
 #define DEFAULT_LINE_SIZE 30
 const char *BANNED_STRINGS[21] = {"complement", "union", "intersect", "minus", "subseteq", "subset", "equals", "reflexive", "symmetric", "antisymmetric", "transitive", "function", "domain", "codomain", "injective", "surjective", "bijective", "true", "false", "empty", "card"};
