@@ -344,6 +344,7 @@ void process_operation(char command_name[], char *lines_array[], int first_line_
     else
     {
         fprintf(stderr, "Chyba vstupu, spatny nazev fce\n"); // TODO - ukoncit program protoze spatny vstup
+        *is_command_error = 1;
     }
 }
 void remove_all_chars(char *str, char c)
@@ -734,7 +735,7 @@ void set_print_from_array(char **items, int items_count)
         }
     }
     else
-        printf("{}\n");
+        printf("\n");
 }
 void set_dtor(Set *set)
 {
@@ -1060,27 +1061,7 @@ int subset_com(int first_line_num, int second_line_num, char *lines_array[], int
             set_dtor(&second_set);
             return 0;
         }
-        else
-        {
-            for (int i = 0; i < first_set.size; i++)
-            {
-                for (int j = 0; j < second_set.size; j++)
-                {
-                    if (!strcmp(first_set.items[i], second_set.items[j]))
-                    {
-                        is_identical = 1;
-                        break;
-                    }
-                }
-                if (is_identical == 0)
-                {
-                    printf("true\n");
-                    set_dtor(&first_set);
-                    set_dtor(&second_set);
-                    return 0;
-                }
-                is_identical = 0;
-            }
+        else {
             printf("false\n");
             set_dtor(&first_set);
             set_dtor(&second_set);
@@ -1591,6 +1572,12 @@ int injective_com(int first_line_num, int second_line_num, int third_line_num, c
                 set_dtor(&first_set);
                 set_dtor(&second_set);
                 return 1;
+            }
+            else {
+                session_dtor(&session);
+                set_dtor(&first_set);
+                set_dtor(&second_set);
+                return 0;
             }
         }
         session_dtor(&session);
