@@ -117,6 +117,7 @@ int main(int argc, char const *argv[])
         int is_command_error = 0;
         // int line_count = process_file("file.txt", lines_array);
         int line_count = process_file(argv[1], lines_array);
+        if (line_count == -1) return 1;
         if (validate_lines(lines_array, line_count))
         {
             process_rows(lines_array, line_count, &is_command_error);
@@ -196,13 +197,19 @@ int process_file(const char filename[], char **lines_array)
     FILE *file;
     int line_count;
     file = fopen(filename, "r");
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 1002; i++)
     {
-        lines_array[i] = (char *)malloc(DEFAULT_LINE_SIZE);
-        if (readline(file, lines_array[i]))
-        {
-            line_count = i;
-            break;
+        if (i < 1001) {
+            lines_array[i] = (char *)malloc(DEFAULT_LINE_SIZE);
+            if (readline(file, lines_array[i]))
+            {
+                line_count = i;
+                break;
+            }
+        }
+        else {
+            fprintf(stderr, "Soubor nesmi obsahovat vic jak 1000 radku");
+            return -1;
         }
     }
 
