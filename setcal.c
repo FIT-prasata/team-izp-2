@@ -617,10 +617,11 @@ int validate_lines(char *lines_array[], int line_count)
                     }
                     // TEMPORARLY DISABLED DUE TO UNFIXABLE BUG ON MERLIN
                     // if not universe, checks if all values are from universe
-                    // if (strcmp(splitted_line[0], "U"))
-                    // {
-                    //     subval_values_from_universe(splitted_line, num_items, &is_error, universe_array, universe_size, i + 1);
-                    // }
+                    /*
+                    if (strcmp(splitted_line[0], "U"))
+                    {
+                        subval_values_from_universe(splitted_line, num_items, &is_error, universe_array, universe_size, i + 1);
+                    }*/
                 }
                 else
                 {
