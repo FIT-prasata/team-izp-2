@@ -3,7 +3,8 @@ tempCodeRunnerFile.c
 split2.c
 # Prerequisites
 *.d
-
+tests/
+*.py
 .vscode
 # Object files
 *.o
